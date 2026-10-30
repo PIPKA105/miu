@@ -1,0 +1,88 @@
+name: Build Turnip for Zalith (Adreno 830)
+
+on:
+  workflow_dispatch:
+    inputs:
+      mesa_ref:
+        description: "Mesa branch or tag (e.g. main, mesa-25.2.0)"
+        default: "main"
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y git ninja-build python3-pip patchelf zip \
+            glslang-tools bison flex pkg-config libwayland-dev wayland-protocols
+          pip3 install --break-system-packages meson mako pyyaml packaging
+
+      - name: Clone Mesa
+        run: |
+          git clone --depth 1 --branch "${{ github.event.inputs.mesa_ref }}" \
+            https://gitlab.freedesktop.org/mesa/mesa.git
+          cd mesa
+          echo "MESA_VER=$(cat VERSION)" >> $GITHUB_ENV
+
+      - name: Cross file
+        run: |
+          NDK="$ANDROID_NDK_LATEST_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin"
+          cat > mesa/android-aarch64 <<EOF
+          [binaries]
+          ar = '$NDK/llvm-ar'
+          c = ['$NDK/aarch64-linux-android34-clang', '-O3']
+          cpp = ['$NDK/aarch64-linux-android34-clang++', '-O3', '-fno-exceptions', '-fno-unwind-tables', '-fno-asynchronous-unwind-tables', '-static-libstdc++']
+          strip = '$NDK/llvm-strip'
+          pkg-config = ['env', 'PKG_CONFIG_LIBDIR=NDKDIR/pkgconfig', '/usr/bin/pkg-config']
+
+          [host_machine]
+          system = 'android'
+          cpu_family = 'aarch64'
+          cpu = 'armv8'
+          endian = 'little'
+          EOF
+          sed -i 's/^          //' mesa/android-aarch64
+
+      - name: Build
+        run: |
+          cd mesa
+          meson setup build --cross-file android-aarch64 \
+            -Dbuildtype=release \
+            -Dplatforms=android \
+            -Dplatform-sdk-version=34 \
+            -Dandroid-stub=true \
+            -Dandroid-libbacktrace=disabled \
+            -Dgallium-drivers= \
+            -Dvulkan-drivers=freedreno \
+            -Dfreedreno-kmds=kgsl \
+            -Degl=disabled \
+            -Dstrip=true \
+            --force-fallback-for=expat,zlib
+          ninja -C build
+
+      - name: Package
+        run: |
+          mkdir out && cd out
+          cp ../mesa/build/src/freedreno/vulkan/libvulkan_freedreno.so vulkan.ad0830.so
+          patchelf --set-soname vulkan.ad0830.so vulkan.ad0830.so
+          cat > meta.json <<EOF
+          {
+            "schemaVersion": 1,
+            "name": "Turnip ${MESA_VER} A830",
+            "description": "Mesa Turnip for Adreno 830 (Poco F8 Pro)",
+            "author": "Stepan",
+            "packageVersion": "1",
+            "vendor": "Mesa",
+            "driverVersion": "Mesa ${MESA_VER}",
+            "minApi": 28,
+            "libraryName": "vulkan.ad0830.so"
+          }
+          EOF
+          sed -i 's/^          //' meta.json
+          zip -r ../turnip_a830.zip vulkan.ad0830.so meta.json
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: turnip_a830
+          path: turnip_a830.zip

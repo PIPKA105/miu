@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<plugin xmlns="http://apache.org/cordova/ns/plugins/1.0" id="cordova-plugin-foxlaunch" version="1.0.0">
+    <name>FoxLaunch</name>
+    <description>Launch installed games and open Play Store.</description>
+    <js-module src="www/foxlaunch.js" name="FoxLaunch">
+        <clobbers target="FoxLaunch" />
+    </js-module>
+    <platform name="android">
+        <config-file target="res/xml/config.xml" parent="/*">
+            <feature name="FoxLaunch">
+                <param name="android-package" value="com.foxai.foxlaunch.FoxLaunch" />
+            </feature>
+        </config-file>
+        <config-file target="AndroidManifest.xml" parent="/*">
+            <queries>
+                <intent>
+                    <action android:name="android.intent.action.MAIN" />
+                    <category android:name="android.intent.category.LAUNCHER" />
+                </intent>
+                <package android:name="com.rockstargames.gtasa" />
+                <package android:name="com.rockstargames.gtavc" />
+                <package android:name="com.rockstargames.gta3" />
+                <package android:name="com.rockstargames.gtactw" />
+                <package android:name="com.rockstargames.gtalcs" />
+                <package android:name="com.rockstargames.bully" />
+            </queries>
+        </config-file>
+        <source-file src="src/android/FoxLaunch.java" target-dir="src/com/foxai/foxlaunch" />
+    </platform>
+</plugin>

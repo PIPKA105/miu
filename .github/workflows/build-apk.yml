@@ -1,4 +1,4 @@
-name: FOX GTA PORTS APK v4
+name: FOX GTA PORTS APK v5
 
 on:
   workflow_dispatch:
@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
-      - run: echo "=== FOX WORKFLOW v4 ACTIVE ==="
+      - run: echo "=== FOX WORKFLOW v5 ACTIVE ==="
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with: { node-version: 22 }
@@ -33,11 +33,8 @@ jobs:
           {
             "name": "cordova-plugin-foxlaunch",
             "version": "1.0.0",
-            "description": "Launch installed apps and open Play Store.",
-            "cordova": {
-              "id": "cordova-plugin-foxlaunch",
-              "platforms": ["android"]
-            },
+            "description": "Launch installed apps, open Play Store and URLs.",
+            "cordova": { "id": "cordova-plugin-foxlaunch", "platforms": ["android"] },
             "keywords": ["ecosystem:cordova", "cordova-android"],
             "author": "FoxAI",
             "license": "MIT"
@@ -45,16 +42,12 @@ jobs:
           FOX_PKG
           cat > build/config.xml <<'FOX_CFG'
           <?xml version='1.0' encoding='utf-8'?>
-          <widget id="com.foxai.gtaports" version="4.0.0" xmlns="http://www.w3.org/ns/widgets" xmlns:cdv="http://cordova.apache.org/ns/1.0">
+          <widget id="com.foxai.gtaports" version="5.0.0" xmlns="http://www.w3.org/ns/widgets" xmlns:cdv="http://cordova.apache.org/ns/1.0">
               <name>GTA PORTS LAUNCHER</name>
               <description>Fan edition launcher for the whole GTA series + built-in joystick game.</description>
               <author href="https://github.com" email="fox@foxai.app">FoxAI</author>
               <content src="index.html" />
               <access origin="*" />
-              <allow-intent href="http://*/*" />
-              <allow-intent href="https://*/*" />
-              <allow-intent href="market:*" />
-              <allow-intent href="intent:*" />
               <preference name="Orientation" value="portrait" />
               <preference name="BackgroundColor" value="0xff0b0620" />
               <preference name="android-minSdkVersion" value="24" />
@@ -76,6 +69,7 @@ jobs:
                   <config-file target="AndroidManifest.xml" parent="/*">
                       <queries>
                           <intent><action android:name="android.intent.action.MAIN" /><category android:name="android.intent.category.LAUNCHER" /></intent>
+                          <intent><action android:name="android.intent.action.VIEW" /><data android:scheme="https" /></intent>
                           <package android:name="com.retroarch" /><package android:name="org.ppsspp.ppsspp" />
                           <package android:name="me.magnum.melonds" /><package android:name="com.winlator" />
                           <package android:name="com.rockstargames.gta3" /><package android:name="com.rockstargames.gtavc" />
@@ -91,7 +85,8 @@ jobs:
           module.exports = {
               isInstalled: function (p, ok, fail) { exec(ok, fail, 'FoxLaunch', 'isInstalled', [p]); },
               launch:      function (p, ok, fail) { exec(ok, fail, 'FoxLaunch', 'launch', [p]); },
-              openStore:   function (p, ok, fail) { exec(ok, fail, 'FoxLaunch', 'openStore', [p]); }
+              openStore:   function (p, ok, fail) { exec(ok, fail, 'FoxLaunch', 'openStore', [p]); },
+              openUrl:     function (u, ok, fail) { exec(ok, fail, 'FoxLaunch', 'openUrl', [u]); }
           };
           FOX_JS
           cat > foxplugin/src/android/FoxLaunch.java <<'FOX_JAVA'
@@ -107,28 +102,36 @@ jobs:
           public class FoxLaunch extends CordovaPlugin {
               @Override
               public boolean execute(String action, JSONArray args, CallbackContext cb) throws JSONException {
-                  String pkg = args.getString(0);
+                  String arg = args.getString(0);
                   Context ctx = cordova.getActivity().getApplicationContext();
                   PackageManager pm = ctx.getPackageManager();
                   if (action.equals("isInstalled")) {
                       boolean ok = false;
-                      try { pm.getPackageInfo(pkg, 0); ok = true; } catch (Exception e) { }
+                      try { pm.getPackageInfo(arg, 0); ok = true; } catch (Exception e) { }
                       cb.success(ok ? 1 : 0); return true;
                   }
                   if (action.equals("launch")) {
-                      Intent i = pm.getLaunchIntentForPackage(pkg);
+                      Intent i = pm.getLaunchIntentForPackage(arg);
                       if (i == null) { cb.error("not_installed"); return true; }
                       i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK); ctx.startActivity(i); cb.success(); return true;
                   }
                   if (action.equals("openStore")) {
                       try {
-                          Intent i = new Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=" + pkg));
+                          Intent i = new Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=" + arg));
                           i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK); ctx.startActivity(i);
                       } catch (Exception e) {
-                          Intent i = new Intent(Intent.ACTION_VIEW, Uri.parse("https://play.google.com/store/apps/details?id=" + pkg));
+                          Intent i = new Intent(Intent.ACTION_VIEW, Uri.parse("https://play.google.com/store/apps/details?id=" + arg));
                           i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK); ctx.startActivity(i);
                       }
                       cb.success(); return true;
+                  }
+                  if (action.equals("openUrl")) {
+                      try {
+                          Intent i = new Intent(Intent.ACTION_VIEW, Uri.parse(arg));
+                          i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK); ctx.startActivity(i);
+                          cb.success();
+                      } catch (Exception e) { cb.error("cannot_open"); }
+                      return true;
                   }
                   return false;
               }
@@ -379,7 +382,7 @@ jobs:
           <div class="anti-card reveal"><h3>⚠️ «GTA V / VI на телефон»</h3><p>Нативных портов IV и V нет. Любой «GTA5.apk» — фейк или вирус. Реально: облако Xbox или Winlator со своей PC-копией.</p><span class="anti-chip">НЕ СТАВИТЬ</span></div>
           <h2 class="sec-title reveal">КАК ЭТО РАБОТАЕТ</h2>
           <div class="steps reveal"><div class="step"><i>1</i><b>Выбери GTA</b><p>Карточка покажет лёгкий путь</p></div><div class="step"><i>2</i><b>Поставь движок</b><p>Эмулятор бесплатно</p></div><div class="step"><i>3</i><b>Своя копия</b><p>Дамп диска / UMD</p></div><div class="step"><i>4</i><b>▶ Играть</b><p>Лаунчер откроет эмулятор</p></div></div>
-          <footer>Сделано FoxAI 🦊 для Степы • v4</footer>
+          <footer>Сделано FoxAI 🦊 для Степы • v5</footer>
           </section>
           <section id="view-game" class="view">
           <h2 class="sec-title" style="margin-top:6px">🎮 ВСТРОЕННАЯ ИГРА</h2>
@@ -461,7 +464,7 @@ jobs:
           function sheetHTML(g){var fav=S.favs.indexOf(g.id)>-1,inst=g.app.pkg&&S.installed[g.app.pkg];var st=g.method.map(function(m){return '<li>'+m+'</li>';}).join('');var lk=g.engine?'<button class="btn btn-ghost" data-act="link" data-url="'+g.engine.url+'">⚙️ '+g.engine.name+'</button>':'';return '<div class="s-cover">'+coverSVG(g)+'</div><div class="s-head"><div><h2>'+g.title+'</h2><div class="s-sub">'+g.year+' • '+g.app.name+'</div></div><div class="lightbox"><b>'+g.light+'/5</b><span>ЛЁГКОСТЬ</span><div>'+leaves(g.light)+'</div></div></div><div class="s-meta"><div><span>Год</span><b>'+g.year+'</b></div><div><span>Вес</span><b>'+g.size+'</b></div><div><span>Устройство</span><b>'+g.device+'</b></div><div><span>Путь</span><b>'+g.app.name+'</b></div></div><div class="s-need"><span>ЧТО НУЖНО 🦊</span>'+g.need+'</div><div class="s-how"><h4>Как запустить</h4><ol>'+st+'</ol></div><div class="s-fan"><span>ФАН-ИСТОРИЯ</span>'+g.fan+'</div>'+(lk?'<div class="s-links">'+lk+'</div>':'')+'<div class="s-actions"><button class="btn btn-primary" data-act="dl" data-id="'+g.id+'">'+dlLabel(g)+'</button><button class="btn '+(inst?'btn-play':'btn-ghost')+'" data-act="play" data-id="'+g.id+'">▶ Играть</button><button class="heart big'+(fav?' on':'')+'" data-act="fav" data-id="'+g.id+'">'+HEART+'</button></div>';}
           function openSheet(g){if(!g)return;currentSheet=g;el('sheetBody').innerHTML=sheetHTML(g);el('sheetBody').scrollTop=0;el('sheet').classList.add('open');document.body.classList.add('lock');}
           function closeSheet(){el('sheet').classList.remove('open');if(!overlayOpen)document.body.classList.remove('lock');}
-          function openExternal(u){if(window.cordova)window.open(u,'_system');else window.open(u,'_blank');}
+          function openExternal(u){if(window.FoxLaunch&&FoxLaunch.openUrl){FoxLaunch.openUrl(u,function(){},function(){window.open(u,'_blank');});}else{window.open(u,'_blank');}}
           function doDownload(g){if(g.app.pkg){if(window.FoxLaunch)FoxLaunch.openStore(g.pkg,function(){},function(){openExternal(g.app.store||g.app.url);});else openExternal(g.app.store||g.app.url);toast('Открываю '+g.app.name);}else{openExternal(g.app.url);toast('Открываю '+g.app.name);}}
           function doPlay(g){if(!g.app.pkg){openExternal(g.app.url);return;}if(window.FoxLaunch){FoxLaunch.isInstalled(g.app.pkg,function(v){if(v==1)FoxLaunch.launch(g.app.pkg,function(){toast('Запускаю '+g.app.name+' 🦊','ok');},function(){doDownload(g);});else{toast('Сначала поставь '+g.app.name,'warn');doDownload(g);}},function(){doDownload(g);});}else{doDownload(g);toast('В APK кнопка ▶ запускает напрямую');}}
           function refreshInstalled(){if(!window.FoxLaunch)return;var seen={};GAMES.forEach(function(g){var p=g.app.pkg;if(!p||seen[p])return;seen[p]=1;FoxLaunch.isInstalled(p,function(v){var now=(v==1);if(S.installed[p]!==now){S.installed[p]=now;renderCatalog();renderFavs();updateBadges();}},function(){});});}
@@ -514,7 +517,6 @@ jobs:
         run: |
           cd build
           cordova platform add android@13.0.0
-          cordova plugin add cordova-plugin-whitelist
           cordova plugin add "$GITHUB_WORKSPACE/foxplugin"
 
       - name: Signing key

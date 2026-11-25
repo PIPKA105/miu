@@ -81,8 +81,8 @@ jobs:
                   applicationId "com.gtaports.launcher"
                   minSdk 24
                   targetSdk 34
-                  versionCode 1
-                  versionName "1.0"
+                  versionCode 2
+                  versionName "2.0"
               }
 
               buildTypes {
@@ -113,12 +113,13 @@ jobs:
           cat << 'EOF' > app/src/main/res/values/styles.xml
           <resources>
               <style name="AppTheme" parent="android:Theme.Material.NoActionBar">
-                  <item name="android:windowBackground">#0B0D14</item>
-                  <item name="android:statusBarColor">#0B0D14</item>
-                  <item name="android:navigationBarColor">#0B0D14</item>
+                  <item name="android:windowBackground">#0E1118</item>
+                  <item name="android:statusBarColor">#0E1118</item>
+                  <item name="android:navigationBarColor">#0E1118</item>
               </style>
               <style name="GameTheme" parent="android:Theme.Material.NoActionBar.Fullscreen">
                   <item name="android:windowBackground">#000000</item>
+                  <item name="android:windowFullscreen">true</item>
               </style>
           </resources>
           EOF
@@ -197,19 +198,19 @@ jobs:
                   list.add(new PortInfo(
                           "gta_vc",
                           "GTA: Vice City",
-                          "reVC WebAssembly • 1986 Майами • Поддержка геймпада и сохранений",
+                          "reVC WebAssembly • 1986 Майами • Поддержка сохранений",
                           "РЕКОМЕНДУЕТСЯ • ТЕЛЕФОН",
                           "https://www.inxanitylabs.com/games/gta-vice-city",
-                          true, false, 0xFFFF2E93
+                          true, false, 0xFF00D296
                   ));
 
                   list.add(new PortInfo(
                           "gta_3",
                           "GTA III",
-                          "re3 WebAssembly • Либерти-Сити • 3 зеркала и менеджер сохранений",
+                          "re3 WebAssembly • Либерти-Сити • 3 зеркала",
                           "ПРОВЕРЕН • ТЕЛЕФОН",
                           "https://www.inxanitylabs.com/games/gta-3",
-                          true, false, 0xFFF59E0B
+                          true, false, 0xFF38BDF8
                   ));
 
                   list.add(new PortInfo(
@@ -224,49 +225,165 @@ jobs:
                   list.add(new PortInfo(
                           "gta_vcs",
                           "GTA: Vice City Stories",
-                          "PSP/PS2 порт • История Вика Вэнса в Вайс-Сити 1984 года",
+                          "PSP/PS2 порт • История Вика Вэнса",
                           "PSP ПОРТ",
                           "https://www.inxanitylabs.com/games/gta-vice-city-stories",
-                          false, true, 0xFFEC4899
+                          false, true, 0xFFF472B6
                   ));
 
                   list.add(new PortInfo(
                           "gta_4",
                           "GTA IV",
-                          "PlayTab WebGPU • Нико Беллик • Требуется мощный GPU",
+                          "PlayTab WebGPU • Нико Беллик • Нужен мощный GPU",
                           "WEBGPU • ПК-РЕЖИМ",
                           "https://www.inxanitylabs.com/games/grand-theft-auto-iv",
-                          false, true, 0xFF38BDF8
+                          false, true, 0xFF60A5FA
                   ));
 
                   list.add(new PortInfo(
                           "gta_5",
                           "GTA V",
-                          "WASM/WebGPU • Лос-Сантос (Sandbox и Story) • 4 зеркала",
+                          "WASM/WebGPU • Лос-Сантос (Sandbox и Story)",
                           "WEBGPU • ПК-РЕЖИМ",
                           "https://www.inxanitylabs.com/games/gta-v",
-                          false, true, 0xFF10B981
+                          false, true, 0xFF34D399
                   ));
 
                   list.add(new PortInfo(
                           "gta_2",
                           "GTA 2",
-                          "Co-op до 6 игроков • Широкий экран • ~355 МБ кэш",
+                          "Co-op до 6 игроков • ~355 МБ кэш",
                           "КООПЕРАТИВ • КЛАССИКА",
                           "https://www.inxanitylabs.com/games/gta-2",
-                          false, true, 0xFFA855F7
+                          false, true, 0xFFA78BFA
                   ));
 
                   list.add(new PortInfo(
                           "gta_1",
                           "Grand Theft Auto (1997)",
-                          "Оригинальный DOS-релиз с поддержкой виртуальной локальной сети",
+                          "Оригинальный DOS-релиз с виртуальной локальной сетью",
                           "КЛАССИКА • DOS",
                           "https://www.inxanitylabs.com/games/grand-theft-auto-1997",
-                          false, true, 0xFFEF4444
+                          false, true, 0xFFFB7185
                   ));
 
                   return list;
+              }
+          }
+          EOF
+
+          cat << 'EOF' > app/src/main/java/com/gtaports/launcher/CustomButtonConfig.java
+          package com.gtaports.launcher;
+
+          import org.json.JSONArray;
+          import org.json.JSONObject;
+
+          import java.util.ArrayList;
+          import java.util.List;
+
+          public class CustomButtonConfig {
+              public static final String ACTION_KEY = "KEY";
+              public static final String ACTION_MOUSE_LEFT = "MOUSE_LEFT";
+              public static final String ACTION_MOUSE_RIGHT = "MOUSE_RIGHT";
+
+              public String id;
+              public String name;
+              public int color;
+              public String actionType;
+              public String keyLabel;
+              public String jsCode;
+              public int keyCode;
+              public float xFraction;
+              public float yFraction;
+              public boolean removable;
+
+              public CustomButtonConfig(String id, String name, int color, String actionType,
+                                        String keyLabel, String jsCode, int keyCode,
+                                        float xFraction, float yFraction, boolean removable) {
+                  this.id = id;
+                  this.name = name;
+                  this.color = color;
+                  this.actionType = actionType;
+                  this.keyLabel = keyLabel;
+                  this.jsCode = jsCode;
+                  this.keyCode = keyCode;
+                  this.xFraction = xFraction;
+                  this.yFraction = yFraction;
+                  this.removable = removable;
+              }
+
+              public JSONObject toJson() {
+                  JSONObject o = new JSONObject();
+                  try {
+                      o.put("id", id);
+                      o.put("name", name);
+                      o.put("color", color);
+                      o.put("actionType", actionType);
+                      o.put("keyLabel", keyLabel);
+                      o.put("jsCode", jsCode);
+                      o.put("keyCode", keyCode);
+                      o.put("xFraction", xFraction);
+                      o.put("yFraction", yFraction);
+                      o.put("removable", removable);
+                  } catch (Exception ignored) {}
+                  return o;
+              }
+
+              public static CustomButtonConfig fromJson(JSONObject o) {
+                  return new CustomButtonConfig(
+                          o.optString("id", "btn"),
+                          o.optString("name", "Кнопка"),
+                          o.optInt("color", 0xFFFB7185),
+                          o.optString("actionType", ACTION_KEY),
+                          o.optString("keyLabel", "F"),
+                          o.optString("jsCode", "KeyF"),
+                          o.optInt("keyCode", 70),
+                          (float) o.optDouble("xFraction", 0.2),
+                          (float) o.optDouble("yFraction", 0.5),
+                          o.optBoolean("removable", false)
+                  );
+              }
+
+              public static List<CustomButtonConfig> defaults() {
+                  List<CustomButtonConfig> list = new ArrayList<>();
+                  // 4-кнопочный ромб слева, как на схеме
+                  list.add(new CustomButtonConfig(
+                          "red_top", "Красная (верх)", 0xFFFF6B6B,
+                          ACTION_KEY, "F", "KeyF", 70, 0.14f, 0.44f, false
+                  ));
+                  list.add(new CustomButtonConfig(
+                          "blue_left", "Синяя (лево)", 0xFF0EA5E9,
+                          ACTION_MOUSE_LEFT, "ЛКМ", "MouseLeft", 0, 0.07f, 0.58f, false
+                  ));
+                  list.add(new CustomButtonConfig(
+                          "green_right", "Зелёная (право)", 0xFFBDF55A,
+                          ACTION_KEY, "SPACE", "Space", 32, 0.21f, 0.58f, false
+                  ));
+                  list.add(new CustomButtonConfig(
+                          "orange_bottom", "Оранжевая (низ)", 0xFFF59E0B,
+                          ACTION_KEY, "SHIFT", "ShiftLeft", 16, 0.14f, 0.72f, false
+                  ));
+                  return list;
+              }
+
+              public static String serializeList(List<CustomButtonConfig> list) {
+                  JSONArray arr = new JSONArray();
+                  for (CustomButtonConfig c : list) arr.put(c.toJson());
+                  return arr.toString();
+              }
+
+              public static List<CustomButtonConfig> deserializeList(String json) {
+                  if (json == null || json.isEmpty()) return defaults();
+                  try {
+                      JSONArray arr = new JSONArray(json);
+                      List<CustomButtonConfig> list = new ArrayList<>();
+                      for (int i = 0; i < arr.length(); i++) {
+                          list.add(fromJson(arr.getJSONObject(i)));
+                      }
+                      return list.isEmpty() ? defaults() : list;
+                  } catch (Exception e) {
+                      return defaults();
+                  }
               }
           }
           EOF
@@ -286,10 +403,10 @@ jobs:
                   void onJoystickMoved(float xPercent, float yPercent);
               }
 
-              private final Paint basePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-              private final Paint borderPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-              private final Paint hatPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-              private final Paint hatStrokePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+              private final Paint baseFill = new Paint(Paint.ANTI_ALIAS_FLAG);
+              private final Paint outerRing = new Paint(Paint.ANTI_ALIAS_FLAG);
+              private final Paint innerRing = new Paint(Paint.ANTI_ALIAS_FLAG);
+              private final Paint hatFill = new Paint(Paint.ANTI_ALIAS_FLAG);
 
               private float centerX;
               private float centerY;
@@ -301,19 +418,19 @@ jobs:
 
               public VirtualJoystickView(Context context) {
                   super(context);
-                  basePaint.setColor(Color.argb(110, 15, 23, 42));
-                  basePaint.setStyle(Paint.Style.FILL);
+                  baseFill.setColor(Color.argb(40, 255, 255, 255));
+                  baseFill.setStyle(Paint.Style.FILL);
 
-                  borderPaint.setColor(Color.argb(190, 56, 189, 248));
-                  borderPaint.setStyle(Paint.Style.STROKE);
-                  borderPaint.setStrokeWidth(4f);
+                  outerRing.setColor(Color.argb(190, 148, 163, 184));
+                  outerRing.setStyle(Paint.Style.STROKE);
+                  outerRing.setStrokeWidth(5f);
 
-                  hatPaint.setColor(Color.argb(210, 56, 189, 248));
-                  hatPaint.setStyle(Paint.Style.FILL);
+                  hatFill.setColor(Color.argb(65, 255, 255, 255));
+                  hatFill.setStyle(Paint.Style.FILL);
 
-                  hatStrokePaint.setColor(Color.WHITE);
-                  hatStrokePaint.setStyle(Paint.Style.STROKE);
-                  hatStrokePaint.setStrokeWidth(3f);
+                  innerRing.setColor(Color.argb(220, 148, 163, 184));
+                  innerRing.setStyle(Paint.Style.STROKE);
+                  innerRing.setStrokeWidth(5f);
               }
 
               public void setJoystickListener(JoystickListener listener) {
@@ -326,7 +443,7 @@ jobs:
                   centerX = w / 2f;
                   centerY = h / 2f;
                   float minDim = Math.min(w, h);
-                  baseRadius = minDim * 0.36f;
+                  baseRadius = minDim * 0.40f;
                   hatRadius = minDim * 0.16f;
                   hatX = centerX;
                   hatY = centerY;
@@ -335,10 +452,10 @@ jobs:
               @Override
               protected void onDraw(Canvas canvas) {
                   super.onDraw(canvas);
-                  canvas.drawCircle(centerX, centerY, baseRadius, basePaint);
-                  canvas.drawCircle(centerX, centerY, baseRadius, borderPaint);
-                  canvas.drawCircle(hatX, hatY, hatRadius, hatPaint);
-                  canvas.drawCircle(hatX, hatY, hatRadius, hatStrokePaint);
+                  canvas.drawCircle(centerX, centerY, baseRadius, baseFill);
+                  canvas.drawCircle(centerX, centerY, baseRadius, outerRing);
+                  canvas.drawCircle(hatX, hatY, hatRadius, hatFill);
+                  canvas.drawCircle(hatX, hatY, hatRadius, innerRing);
               }
 
               @Override
@@ -406,6 +523,7 @@ jobs:
               private String currentFilter = "all";
               private WebView preloadWebView;
               private final Handler mainHandler = new Handler(Looper.getMainLooper());
+              private Button btnAll, btnMobile, btnDesktop;
 
               @Override
               protected void onCreate(Bundle savedInstanceState) {
@@ -421,32 +539,60 @@ jobs:
 
                   LinearLayout root = new LinearLayout(this);
                   root.setOrientation(LinearLayout.VERTICAL);
-                  root.setBackgroundColor(0xFF0B0D14);
-                  root.setPadding(dp(16), dp(20), dp(16), dp(12));
+                  root.setBackgroundColor(0xFF0E1118);
+                  root.setPadding(dp(18), dp(22), dp(18), dp(12));
+
+                  // ColorOS Game Space Header
+                  LinearLayout headerCard = new LinearLayout(this);
+                  headerCard.setOrientation(LinearLayout.VERTICAL);
+                  GradientDrawable headerBg = new GradientDrawable(
+                          GradientDrawable.Orientation.TL_BR,
+                          new int[]{0xFF172234, 0xFF121622}
+                  );
+                  headerBg.setCornerRadius(dp(24));
+                  headerBg.setStroke(dp(1), 0xFF28354D);
+                  headerCard.setBackground(headerBg);
+                  headerCard.setPadding(dp(18), dp(16), dp(18), dp(16));
+
+                  TextView chip = new TextView(this);
+                  chip.setText("COLOR OS GAME SPACE • INXANITY LABS");
+                  chip.setTextColor(0xFF00D296);
+                  chip.setTextSize(11);
+                  chip.setTypeface(Typeface.DEFAULT_BOLD);
+                  headerCard.addView(chip);
 
                   TextView title = new TextView(this);
                   title.setText("GTA PORTS LAUNCHER");
                   title.setTextColor(Color.WHITE);
                   title.setTextSize(24);
-                  title.setTypeface(Typeface.DEFAULT_BOLD);
-                  root.addView(title);
+                  title.setTypeface(Typeface.create("sans-serif-medium", Typeface.BOLD));
+                  title.setPadding(0, dp(4), 0, dp(2));
+                  headerCard.addView(title);
 
                   TextView sub = new TextView(this);
-                  sub.setText("Проверенные веб-порты с inxanitylabs.com • Экранный джойстик");
+                  sub.setText("Полноэкранный запуск • Настраиваемый джойстик и кнопки");
                   sub.setTextColor(0xFF94A3B8);
                   sub.setTextSize(13);
-                  sub.setPadding(0, dp(4), 0, dp(14));
-                  root.addView(sub);
+                  headerCard.addView(sub);
+
+                  LinearLayout.LayoutParams hLp = new LinearLayout.LayoutParams(
+                          LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+                  hLp.setMargins(0, 0, 0, dp(14));
+                  root.addView(headerCard, hLp);
 
                   LinearLayout filterRow = new LinearLayout(this);
                   filterRow.setOrientation(LinearLayout.HORIZONTAL);
-                  filterRow.setPadding(0, 0, 0, dp(12));
-                  filterRow.addView(makeFilterBtn("Все (8)", "all"));
-                  filterRow.addView(makeFilterBtn("Для телефона", "mobile"));
-                  filterRow.addView(makeFilterBtn("ПК-режим", "desktop"));
+                  filterRow.setPadding(0, 0, 0, dp(14));
+                  btnAll = makeFilterBtn("Все (8)", "all");
+                  btnMobile = makeFilterBtn("Телефон", "mobile");
+                  btnDesktop = makeFilterBtn("ПК-режим", "desktop");
+                  filterRow.addView(btnAll);
+                  filterRow.addView(btnMobile);
+                  filterRow.addView(btnDesktop);
                   root.addView(filterRow);
 
                   ScrollView scroll = new ScrollView(this);
+                  scroll.setVerticalScrollBarEnabled(false);
                   listContainer = new LinearLayout(this);
                   listContainer.setOrientation(LinearLayout.VERTICAL);
                   scroll.addView(listContainer);
@@ -454,29 +600,47 @@ jobs:
                           LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f));
 
                   setContentView(root);
+                  updateFilterStyles();
                   renderPorts();
               }
 
               private Button makeFilterBtn(String label, final String filterKey) {
                   Button b = new Button(this);
                   b.setText(label);
-                  b.setTextSize(12);
+                  b.setTextSize(13);
                   b.setAllCaps(false);
-                  b.setTextColor(Color.WHITE);
-                  GradientDrawable bg = new GradientDrawable();
-                  bg.setColor(0xFF1E293B);
-                  bg.setCornerRadius(dp(16));
-                  b.setBackground(bg);
+                  b.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
                   LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
-                          LinearLayout.LayoutParams.WRAP_CONTENT, dp(36));
+                          LinearLayout.LayoutParams.WRAP_CONTENT, dp(38));
                   lp.setMargins(0, 0, dp(8), 0);
                   b.setLayoutParams(lp);
-                  b.setPadding(dp(14), 0, dp(14), 0);
+                  b.setPadding(dp(16), 0, dp(16), 0);
                   b.setOnClickListener(v -> {
                       currentFilter = filterKey;
+                      updateFilterStyles();
                       renderPorts();
                   });
                   return b;
+              }
+
+              private void updateFilterStyles() {
+                  styleFilter(btnAll, "all".equals(currentFilter));
+                  styleFilter(btnMobile, "mobile".equals(currentFilter));
+                  styleFilter(btnDesktop, "desktop".equals(currentFilter));
+              }
+
+              private void styleFilter(Button b, boolean active) {
+                  GradientDrawable bg = new GradientDrawable();
+                  bg.setCornerRadius(dp(20));
+                  if (active) {
+                      bg.setColor(0xFF00D296);
+                      b.setTextColor(0xFF06120E);
+                  } else {
+                      bg.setColor(0xFF1A202E);
+                      bg.setStroke(dp(1), 0xFF283146);
+                      b.setTextColor(0xFFCBD5E1);
+                  }
+                  b.setBackground(bg);
               }
 
               private void renderPorts() {
@@ -493,11 +657,11 @@ jobs:
                   LinearLayout card = new LinearLayout(this);
                   card.setOrientation(LinearLayout.VERTICAL);
                   GradientDrawable cardBg = new GradientDrawable();
-                  cardBg.setColor(0xFF131722);
-                  cardBg.setCornerRadius(dp(14));
-                  cardBg.setStroke(dp(1), 0xFF263044);
+                  cardBg.setColor(0xFF161B26);
+                  cardBg.setCornerRadius(dp(22));
+                  cardBg.setStroke(dp(1), 0xFF262F42);
                   card.setBackground(cardBg);
-                  card.setPadding(dp(16), dp(14), dp(16), dp(14));
+                  card.setPadding(dp(18), dp(16), dp(18), dp(16));
 
                   LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
                           LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
@@ -514,24 +678,24 @@ jobs:
                   TextView name = new TextView(this);
                   name.setText(port.title);
                   name.setTextColor(Color.WHITE);
-                  name.setTextSize(18);
-                  name.setTypeface(Typeface.DEFAULT_BOLD);
+                  name.setTextSize(19);
+                  name.setTypeface(Typeface.create("sans-serif-medium", Typeface.BOLD));
                   name.setPadding(0, dp(4), 0, dp(4));
                   card.addView(name);
 
                   TextView desc = new TextView(this);
                   desc.setText(port.subtitle);
-                  desc.setTextColor(0xFFCBD5E1);
+                  desc.setTextColor(0xFF94A3B8);
                   desc.setTextSize(13);
                   desc.setPadding(0, 0, 0, dp(10));
                   card.addView(desc);
 
                   final boolean isCached = prefs.getBoolean("cached_" + port.id, false);
                   final TextView statusView = new TextView(this);
-                  statusView.setText(isCached ? "Статус: Кэшировано ✓ (готово к запуску)" : "Статус: Не скачано");
-                  statusView.setTextColor(isCached ? 0xFF4ADE80 : 0xFF94A3B8);
+                  statusView.setText(isCached ? "● Кэшировано и готово" : "○ Не скачано");
+                  statusView.setTextColor(isCached ? 0xFF00D296 : 0xFF64748B);
                   statusView.setTextSize(12);
-                  statusView.setPadding(0, 0, 0, dp(10));
+                  statusView.setPadding(0, 0, 0, dp(12));
                   card.addView(statusView);
 
                   LinearLayout btnRow = new LinearLayout(this);
@@ -539,19 +703,20 @@ jobs:
                   btnRow.setGravity(Gravity.CENTER_VERTICAL);
 
                   final Button downloadBtn = new Button(this);
-                  downloadBtn.setText(isCached ? "Обновить кэш" : "Скачать");
+                  downloadBtn.setText(isCached ? "Обновить" : "Скачать");
                   downloadBtn.setAllCaps(false);
                   downloadBtn.setTextColor(Color.WHITE);
+                  downloadBtn.setTextSize(14);
                   GradientDrawable dlBg = new GradientDrawable();
-                  dlBg.setColor(0xFF1E293B);
-                  dlBg.setCornerRadius(dp(10));
+                  dlBg.setColor(0xFF222A3A);
+                  dlBg.setCornerRadius(dp(18));
                   downloadBtn.setBackground(dlBg);
-                  LinearLayout.LayoutParams dlLp = new LinearLayout.LayoutParams(0, dp(42), 1f);
-                  dlLp.setMargins(0, 0, dp(8), 0);
+                  LinearLayout.LayoutParams dlLp = new LinearLayout.LayoutParams(0, dp(44), 1f);
+                  dlLp.setMargins(0, 0, dp(10), 0);
                   downloadBtn.setLayoutParams(dlLp);
 
                   downloadBtn.setOnClickListener(v -> {
-                      statusView.setText("Статус: Загрузка файлов порта...");
+                      statusView.setText("◌ Загрузка файлов порта...");
                       statusView.setTextColor(0xFFFBBF24);
                       downloadBtn.setEnabled(false);
                       preloadWebView.setWebViewClient(new WebViewClient() {
@@ -559,9 +724,9 @@ jobs:
                           public void onPageFinished(WebView view, String url) {
                               prefs.edit().putBoolean("cached_" + port.id, true).apply();
                               mainHandler.post(() -> {
-                                  statusView.setText("Статус: Кэшировано ✓ (готово к запуску)");
-                                  statusView.setTextColor(0xFF4ADE80);
-                                  downloadBtn.setText("Обновить кэш");
+                                  statusView.setText("● Кэшировано и готово");
+                                  statusView.setTextColor(0xFF00D296);
+                                  downloadBtn.setText("Обновить");
                                   downloadBtn.setEnabled(true);
                                   Toast.makeText(MainActivity.this, port.title + " готов к запуску!", Toast.LENGTH_SHORT).show();
                               });
@@ -573,13 +738,14 @@ jobs:
                   Button playBtn = new Button(this);
                   playBtn.setText("▶ Играть");
                   playBtn.setAllCaps(false);
-                  playBtn.setTextColor(Color.WHITE);
+                  playBtn.setTextColor(0xFF06120E);
+                  playBtn.setTextSize(14);
                   playBtn.setTypeface(Typeface.DEFAULT_BOLD);
                   GradientDrawable playBg = new GradientDrawable();
                   playBg.setColor(port.accentColor);
-                  playBg.setCornerRadius(dp(10));
+                  playBg.setCornerRadius(dp(18));
                   playBtn.setBackground(playBg);
-                  LinearLayout.LayoutParams playLp = new LinearLayout.LayoutParams(0, dp(42), 1f);
+                  LinearLayout.LayoutParams playLp = new LinearLayout.LayoutParams(0, dp(44), 1.2f);
                   playBtn.setLayoutParams(playLp);
 
                   playBtn.setOnClickListener(v -> {
@@ -607,74 +773,125 @@ jobs:
           package com.gtaports.launcher;
 
           import android.app.Activity;
+          import android.app.AlertDialog;
           import android.content.SharedPreferences;
           import android.graphics.Color;
+          import android.graphics.Typeface;
           import android.graphics.drawable.GradientDrawable;
+          import android.os.Build;
           import android.os.Bundle;
           import android.view.Gravity;
           import android.view.MotionEvent;
           import android.view.View;
+          import android.view.WindowInsets;
+          import android.view.WindowInsetsController;
           import android.view.WindowManager;
           import android.webkit.WebChromeClient;
           import android.webkit.WebSettings;
           import android.webkit.WebView;
           import android.webkit.WebViewClient;
           import android.widget.Button;
+          import android.widget.EditText;
           import android.widget.FrameLayout;
           import android.widget.LinearLayout;
+          import android.widget.ScrollView;
+          import android.widget.TextView;
+          import android.widget.Toast;
 
           import java.util.HashSet;
+          import java.util.List;
           import java.util.Set;
 
           public class GameActivity extends Activity {
+              private static final String PREFS = "gta_ports_prefs";
+              private static final String KEY_BUTTONS = "custom_buttons_v2";
               private static final String DESKTOP_UA =
                       "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36";
 
+              private SharedPreferences prefs;
               private WebView webView;
+              private FrameLayout rootLayout;
               private FrameLayout controlsOverlay;
+              private VirtualJoystickView joystickView;
+              private List<CustomButtonConfig> buttons;
+
               private boolean joystickVisible = true;
               private boolean arrowMode = false;
               private boolean desktopUa = false;
-              private String portUrl;
+              private boolean editDragMode = false;
               private final Set<String> activeKeys = new HashSet<>();
 
               @Override
               protected void onCreate(Bundle savedInstanceState) {
                   super.onCreate(savedInstanceState);
                   getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+                  if (Build.VERSION.SDK_INT >= 28) {
+                      WindowManager.LayoutParams lp = getWindow().getAttributes();
+                      lp.layoutInDisplayCutoutMode =
+                              WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES;
+                      getWindow().setAttributes(lp);
+                  }
 
-                  portUrl = getIntent().getStringExtra("url");
+                  prefs = getSharedPreferences(PREFS, MODE_PRIVATE);
+                  buttons = CustomButtonConfig.deserializeList(prefs.getString(KEY_BUTTONS, ""));
+
+                  String portUrl = getIntent().getStringExtra("url");
                   String portId = getIntent().getStringExtra("id");
                   desktopUa = getIntent().getBooleanExtra("desktopUa", false);
-
-                  SharedPreferences prefs = getSharedPreferences("gta_ports_prefs", MODE_PRIVATE);
                   boolean cached = prefs.getBoolean("cached_" + portId, false);
 
-                  FrameLayout root = new FrameLayout(this);
-                  root.setBackgroundColor(Color.BLACK);
+                  rootLayout = new FrameLayout(this);
+                  rootLayout.setBackgroundColor(Color.BLACK);
 
                   webView = new WebView(this);
                   configureWebView(cached);
-                  root.addView(webView, new FrameLayout.LayoutParams(
+                  rootLayout.addView(webView, new FrameLayout.LayoutParams(
                           FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT));
 
                   controlsOverlay = new FrameLayout(this);
-                  buildVirtualControls();
-                  root.addView(controlsOverlay, new FrameLayout.LayoutParams(
+                  rootLayout.addView(controlsOverlay, new FrameLayout.LayoutParams(
                           FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT));
 
-                  LinearLayout topBar = buildTopToolbar();
-                  FrameLayout.LayoutParams barLp = new FrameLayout.LayoutParams(
-                          FrameLayout.LayoutParams.WRAP_CONTENT, FrameLayout.LayoutParams.WRAP_CONTENT);
-                  barLp.gravity = Gravity.TOP | Gravity.CENTER_HORIZONTAL;
-                  barLp.topMargin = dp(8);
-                  root.addView(topBar, barLp);
+                  // Овальная кнопка настроек в правом верхнем углу (как на схеме)
+                  Button menuOval = createTopRightMenuOval();
+                  FrameLayout.LayoutParams ovalLp = new FrameLayout.LayoutParams(dp(64), dp(40));
+                  ovalLp.gravity = Gravity.TOP | Gravity.END;
+                  ovalLp.topMargin = dp(12);
+                  ovalLp.rightMargin = dp(14);
+                  rootLayout.addView(menuOval, ovalLp);
 
-                  setContentView(root);
-                  hideSystemUi();
+                  setContentView(rootLayout);
+                  enterFullscreen();
+
+                  rootLayout.post(this::renderControls);
 
                   if (portUrl != null) {
                       webView.loadUrl(portUrl);
+                  }
+              }
+
+              @Override
+              public void onWindowFocusChanged(boolean hasFocus) {
+                  super.onWindowFocusChanged(hasFocus);
+                  if (hasFocus) enterFullscreen();
+              }
+
+              private void enterFullscreen() {
+                  if (Build.VERSION.SDK_INT >= 30) {
+                      getWindow().setDecorFitsSystemWindows(false);
+                      WindowInsetsController c = getWindow().getInsetsController();
+                      if (c != null) {
+                          c.hide(WindowInsets.Type.statusBars() | WindowInsets.Type.navigationBars());
+                          c.setSystemBarsBehavior(WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
+                      }
+                  } else {
+                      getWindow().getDecorView().setSystemUiVisibility(
+                              View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+                                      | View.SYSTEM_UI_FLAG_FULLSCREEN
+                                      | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                                      | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                                      | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                                      | View.SYSTEM_UI_FLAG_LAYOUT_STABLE);
                   }
               }
 
@@ -690,132 +907,352 @@ jobs:
                   if (desktopUa) {
                       s.setUserAgentString(DESKTOP_UA);
                   }
-                  webView.setWebViewClient(new WebViewClient());
+                  webView.setWebViewClient(new WebViewClient() {
+                      @Override
+                      public void onPageFinished(WebView view, String url) {
+                          super.onPageFinished(view, url);
+                          // Автоматически скрываем лишние шапки и разворачиваем игровой плеер
+                          String fsJs = "(function(){try{" +
+                                  "var s=document.createElement('style');" +
+                                  "s.innerHTML='header,nav,.cookies,footer{display:none!important;}';" +
+                                  "document.head.appendChild(s);" +
+                                  "}catch(e){}})();";
+                          view.evaluateJavascript(fsJs, null);
+                      }
+                  });
                   webView.setWebChromeClient(new WebChromeClient());
               }
 
-              private LinearLayout buildTopToolbar() {
-                  LinearLayout bar = new LinearLayout(this);
-                  bar.setOrientation(LinearLayout.HORIZONTAL);
-                  GradientDrawable bg = new GradientDrawable();
-                  bg.setColor(Color.argb(180, 15, 23, 42));
-                  bg.setCornerRadius(dp(20));
-                  bar.setBackground(bg);
-                  bar.setPadding(dp(8), dp(4), dp(8), dp(4));
-
-                  bar.addView(makeTopBtn("◀ Меню", v -> finish()));
-
-                  final Button joyBtn = makeTopBtn("🎮 Джойстик: ВКЛ", null);
-                  joyBtn.setOnClickListener(v -> {
-                      joystickVisible = !joystickVisible;
-                      controlsOverlay.setVisibility(joystickVisible ? View.VISIBLE : View.GONE);
-                      joyBtn.setText(joystickVisible ? "🎮 Джойстик: ВКЛ" : "🎮 Джойстик: ВЫКЛ");
-                  });
-                  bar.addView(joyBtn);
-
-                  final Button modeBtn = makeTopBtn("⌨️ WASD", null);
-                  modeBtn.setOnClickListener(v -> {
-                      releaseAllDirections();
-                      arrowMode = !arrowMode;
-                      modeBtn.setText(arrowMode ? "⌨️ Стрелки" : "⌨️ WASD");
-                  });
-                  bar.addView(modeBtn);
-
-                  final Button uaBtn = makeTopBtn(desktopUa ? "🖥️ ПК UA" : "📱 Моб UA", null);
-                  uaBtn.setOnClickListener(v -> {
-                      desktopUa = !desktopUa;
-                      webView.getSettings().setUserAgentString(desktopUa ? DESKTOP_UA : null);
-                      uaBtn.setText(desktopUa ? "🖥️ ПК UA" : "📱 Моб UA");
-                      webView.reload();
-                  });
-                  bar.addView(uaBtn);
-
-                  return bar;
-              }
-
-              private Button makeTopBtn(String text, View.OnClickListener listener) {
+              private Button createTopRightMenuOval() {
                   Button b = new Button(this);
-                  b.setText(text);
-                  b.setTextSize(11);
-                  b.setAllCaps(false);
-                  b.setTextColor(Color.WHITE);
-                  b.setBackgroundColor(Color.TRANSPARENT);
-                  b.setPadding(dp(8), 0, dp(8), 0);
-                  b.setMinimumHeight(dp(30));
-                  b.setMinHeight(dp(30));
-                  if (listener != null) b.setOnClickListener(listener);
+                  b.setText("⚙");
+                  b.setTextSize(16);
+                  b.setTextColor(0xFFFF6B6B);
+                  GradientDrawable bg = new GradientDrawable();
+                  bg.setColor(Color.argb(90, 15, 23, 42));
+                  bg.setCornerRadius(dp(24));
+                  bg.setStroke(dp(3), 0xFFFF6B6B);
+                  b.setBackground(bg);
+                  b.setPadding(0, 0, 0, 0);
+                  b.setOnClickListener(v -> openColorOsControlMenu());
                   return b;
               }
 
-              private void buildVirtualControls() {
-                  VirtualJoystickView joystick = new VirtualJoystickView(this);
-                  FrameLayout.LayoutParams joyLp = new FrameLayout.LayoutParams(dp(160), dp(160));
-                  joyLp.gravity = Gravity.BOTTOM | Gravity.START;
-                  joyLp.leftMargin = dp(20);
-                  joyLp.bottomMargin = dp(20);
-                  joystick.setJoystickListener((x, y) -> handleJoystick(x, y));
-                  controlsOverlay.addView(joystick, joyLp);
+              private void renderControls() {
+                  controlsOverlay.removeAllViews();
+                  int w = rootLayout.getWidth();
+                  int h = rootLayout.getHeight();
+                  if (w <= 0 || h <= 0) return;
 
-                  LinearLayout rightPad = new LinearLayout(this);
-                  rightPad.setOrientation(LinearLayout.VERTICAL);
-                  rightPad.setGravity(Gravity.END);
+                  // Круглый джойстик справа (как на схеме)
+                  joystickView = new VirtualJoystickView(this);
+                  int joySize = dp(170);
+                  FrameLayout.LayoutParams joyLp = new FrameLayout.LayoutParams(joySize, joySize);
+                  joyLp.gravity = Gravity.BOTTOM | Gravity.END;
+                  joyLp.rightMargin = dp(24);
+                  joyLp.bottomMargin = dp(18);
+                  joystickView.setJoystickListener(this::handleJoystick);
+                  controlsOverlay.addView(joystickView, joyLp);
 
-                  LinearLayout row1 = new LinearLayout(this);
-                  row1.setOrientation(LinearLayout.HORIZONTAL);
-                  row1.addView(makeKeyButton("ESC", "Escape", 27, 0xFF475569));
-                  row1.addView(makeKeyButton("R", "KeyR", 82, 0xFF6366F1));
-                  row1.addView(makeKeyButton("C", "KeyC", 67, 0xFF6366F1));
+                  // Все цветные кнопки (4 стандартные слева + добавленные пользователем)
+                  int btnSize = dp(54);
+                  for (final CustomButtonConfig cfg : buttons) {
+                      Button btn = new Button(this);
+                      btn.setText(cfg.keyLabel);
+                      btn.setTextSize(11);
+                      btn.setAllCaps(false);
+                      btn.setTypeface(Typeface.DEFAULT_BOLD);
+                      btn.setTextColor(isLightColor(cfg.color) ? 0xFF0F172A : Color.WHITE);
+                      btn.setPadding(0, 0, 0, 0);
 
-                  LinearLayout row2 = new LinearLayout(this);
-                  row2.setOrientation(LinearLayout.HORIZONTAL);
-                  row2.addView(makeKeyButton("F (Авто)", "KeyF", 70, 0xFF0EA5E9));
-                  row2.addView(makeKeyButton("SHIFT", "ShiftLeft", 16, 0xFFF59E0B));
+                      GradientDrawable circle = new GradientDrawable();
+                      circle.setShape(GradientDrawable.OVAL);
+                      circle.setColor(Color.argb(215, Color.red(cfg.color), Color.green(cfg.color), Color.blue(cfg.color)));
+                      circle.setStroke(dp(3), 0xFF0B0D14);
+                      btn.setBackground(circle);
 
-                  LinearLayout row3 = new LinearLayout(this);
-                  row3.setOrientation(LinearLayout.HORIZONTAL);
-                  row3.addView(makeKeyButton("SPACE", "Space", 32, 0xFF10B981));
-                  row3.addView(makeKeyButton("ОГОНЬ", "ControlLeft", 17, 0xFFEF4444));
+                      FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(btnSize, btnSize);
+                      lp.leftMargin = Math.max(0, Math.min(w - btnSize, Math.round(cfg.xFraction * w)));
+                      lp.topMargin = Math.max(0, Math.min(h - btnSize, Math.round(cfg.yFraction * h)));
+                      btn.setLayoutParams(lp);
 
-                  rightPad.addView(row1);
-                  rightPad.addView(row2);
-                  rightPad.addView(row3);
+                      btn.setOnTouchListener(new View.OnTouchListener() {
+                          float dX, dY;
+                          @Override
+                          public boolean onTouch(View v, MotionEvent event) {
+                              if (editDragMode) {
+                                  FrameLayout.LayoutParams p = (FrameLayout.LayoutParams) v.getLayoutParams();
+                                  switch (event.getActionMasked()) {
+                                      case MotionEvent.ACTION_DOWN:
+                                          dX = p.leftMargin - event.getRawX();
+                                          dY = p.topMargin - event.getRawY();
+                                          return true;
+                                      case MotionEvent.ACTION_MOVE:
+                                          int nx = Math.max(0, Math.min(w - btnSize, Math.round(event.getRawX() + dX)));
+                                          int ny = Math.max(0, Math.min(h - btnSize, Math.round(event.getRawY() + dY)));
+                                          p.leftMargin = nx;
+                                          p.topMargin = ny;
+                                          v.setLayoutParams(p);
+                                          cfg.xFraction = (float) nx / w;
+                                          cfg.yFraction = (float) ny / h;
+                                          return true;
+                                      case MotionEvent.ACTION_UP:
+                                          saveButtons();
+                                          return true;
+                                  }
+                                  return true;
+                              }
 
-                  FrameLayout.LayoutParams padLp = new FrameLayout.LayoutParams(
-                          FrameLayout.LayoutParams.WRAP_CONTENT, FrameLayout.LayoutParams.WRAP_CONTENT);
-                  padLp.gravity = Gravity.BOTTOM | Gravity.END;
-                  padLp.rightMargin = dp(18);
-                  padLp.bottomMargin = dp(18);
-                  controlsOverlay.addView(rightPad, padLp);
+                              if (event.getAction() == MotionEvent.ACTION_DOWN) {
+                                  v.setAlpha(0.6f);
+                                  triggerConfigAction(cfg, true);
+                                  return true;
+                              } else if (event.getAction() == MotionEvent.ACTION_UP || event.getAction() == MotionEvent.ACTION_CANCEL) {
+                                  v.setAlpha(1.0f);
+                                  triggerConfigAction(cfg, false);
+                                  return true;
+                              }
+                              return false;
+                          }
+                      });
+                      controlsOverlay.addView(btn);
+                  }
               }
 
-              private Button makeKeyButton(String label, final String code, final int keyCode, int color) {
+              private void triggerConfigAction(CustomButtonConfig cfg, boolean down) {
+                  if (CustomButtonConfig.ACTION_MOUSE_LEFT.equals(cfg.actionType)) {
+                      sendJsMouse(down ? "mousedown" : "mouseup", 0);
+                      if (!down) sendJsMouse("click", 0);
+                  } else if (CustomButtonConfig.ACTION_MOUSE_RIGHT.equals(cfg.actionType)) {
+                      sendJsMouse(down ? "mousedown" : "mouseup", 2);
+                      if (!down) sendJsMouse("contextmenu", 2);
+                  } else {
+                      sendJsKey(down ? "keydown" : "keyup", cfg.jsCode, cfg.keyCode, cfg.keyLabel);
+                  }
+              }
+
+              private void openColorOsControlMenu() {
+                  LinearLayout sheet = new LinearLayout(this);
+                  sheet.setOrientation(LinearLayout.VERTICAL);
+                  sheet.setBackgroundColor(0xFF161B26);
+                  sheet.setPadding(dp(20), dp(18), dp(20), dp(18));
+
+                  TextView h = new TextView(this);
+                  h.setText("Настройки ColorOS Game Space");
+                  h.setTextColor(Color.WHITE);
+                  h.setTextSize(18);
+                  h.setTypeface(Typeface.DEFAULT_BOLD);
+                  h.setPadding(0, 0, 0, dp(12));
+                  sheet.addView(h);
+
+                  ScrollView sv = new ScrollView(this);
+                  LinearLayout list = new LinearLayout(this);
+                  list.setOrientation(LinearLayout.VERTICAL);
+                  sv.addView(list);
+                  sheet.addView(sv, new LinearLayout.LayoutParams(
+                          LinearLayout.LayoutParams.MATCH_PARENT, dp(240)));
+
+                  final AlertDialog dlg = new AlertDialog.Builder(this)
+                          .setView(sheet)
+                          .create();
+
+                  list.addView(makeMenuBtn("✏️ Заменить функцию кнопки", 0xFF00D296, 0xFF06120E, v -> {
+                      dlg.dismiss();
+                      openPickButtonToEditDialog();
+                  }));
+
+                  list.addView(makeMenuBtn("➕ Добавить новую кнопку", 0xFF38BDF8, 0xFF06121A, v -> {
+                      dlg.dismiss();
+                      openAddButtonDialog();
+                  }));
+
+                  list.addView(makeMenuBtn(editDragMode ? "✅ Готово (сохранить позиции)" : "✋ Передвинуть кнопки по экрану",
+                          0xFF222A3A, Color.WHITE, v -> {
+                              editDragMode = !editDragMode;
+                              dlg.dismiss();
+                              Toast.makeText(this, editDragMode ? "Перетащите кнопки куда удобно" : "Позиции сохранены", Toast.LENGTH_SHORT).show();
+                          }));
+
+                  list.addView(makeMenuBtn(joystickVisible ? "🎮 Скрыть джойстик и кнопки" : "🎮 Показать джойстик и кнопки",
+                          0xFF222A3A, Color.WHITE, v -> {
+                              joystickVisible = !joystickVisible;
+                              controlsOverlay.setVisibility(joystickVisible ? View.VISIBLE : View.GONE);
+                              dlg.dismiss();
+                          }));
+
+                  list.addView(makeMenuBtn(arrowMode ? "⌨️ Стик: Стрелки (сменить на WASD)" : "⌨️ Стик: WASD (сменить на Стрелки)",
+                          0xFF222A3A, Color.WHITE, v -> {
+                              releaseAllDirections();
+                              arrowMode = !arrowMode;
+                              dlg.dismiss();
+                          }));
+
+                  list.addView(makeMenuBtn(desktopUa ? "🖥️ Режим: ПК (сменить на Телефон)" : "📱 Режим: Телефон (сменить на ПК)",
+                          0xFF222A3A, Color.WHITE, v -> {
+                              desktopUa = !desktopUa;
+                              webView.getSettings().setUserAgentString(desktopUa ? DESKTOP_UA : null);
+                              webView.reload();
+                              dlg.dismiss();
+                          }));
+
+                  list.addView(makeMenuBtn("↺ Сбросить кнопки по умолчанию", 0xFF222A3A, 0xFFFBBF24, v -> {
+                      buttons = CustomButtonConfig.defaults();
+                      saveButtons();
+                      renderControls();
+                      dlg.dismiss();
+                  }));
+
+                  list.addView(makeMenuBtn("◀ Выйти в лаунчер", 0xFF3B1B24, 0xFFFF6B6B, v -> {
+                      dlg.dismiss();
+                      finish();
+                  }));
+
+                  dlg.show();
+              }
+
+              private void openPickButtonToEditDialog() {
+                  String[] names = new String[buttons.size()];
+                  for (int i = 0; i < buttons.size(); i++) {
+                      CustomButtonConfig c = buttons.get(i);
+                      names[i] = c.name + "  [" + c.keyLabel + "]";
+                  }
+                  new AlertDialog.Builder(this)
+                          .setTitle("Выберите кнопку")
+                          .setItems(names, (d, idx) -> openAssignFunctionDialog(buttons.get(idx), false))
+                          .show();
+              }
+
+              private void openAddButtonDialog() {
+                  final String[] colorNames = {"Красная", "Синяя", "Зелёная", "Оранжевая", "Фиолетовая", "Белая"};
+                  final int[] colors = {0xFFFF6B6B, 0xFF0EA5E9, 0xFFBDF55A, 0xFFF59E0B, 0xFFA78BFA, 0xFFE2E8F0};
+                  new AlertDialog.Builder(this)
+                          .setTitle("Цвет новой кнопки")
+                          .setItems(colorNames, (d, idx) -> {
+                              CustomButtonConfig nb = new CustomButtonConfig(
+                                      "custom_" + System.currentTimeMillis(),
+                                      colorNames[idx] + " (доп)",
+                                      colors[idx],
+                                      CustomButtonConfig.ACTION_KEY,
+                                      "Y", "KeyY", 89,
+                                      0.32f, 0.58f, true
+                              );
+                              openAssignFunctionDialog(nb, true);
+                          })
+                          .show();
+              }
+
+              private void openAssignFunctionDialog(final CustomButtonConfig cfg, final boolean isNew) {
+                  final String[] labels = {
+                          "W (Вперёд / Газ)", "A (Влево)", "S (Назад / Тормоз)", "D (Вправо)",
+                          "F (Сесть в авто)", "Y (Да / Действие)", "E (Действие)", "R (Радио)",
+                          "C (Присесть)", "H (Сигнал)", "SPACE (Прыжок / Ручник)",
+                          "SHIFT (Спринт)", "CTRL (Выстрел)", "ESC (Меню)", "ENTER (Ввод)",
+                          "Л. клик мыши (ЛКМ)", "П. клик мыши (ПКМ)", "⌨️ Своя клавиша (ввести букву)"
+                  };
+                  new AlertDialog.Builder(this)
+                          .setTitle("Функция для: " + cfg.name)
+                          .setItems(labels, (d, idx) -> {
+                              if (idx == labels.length - 1) {
+                                  openCustomKeyInputDialog(cfg, isNew);
+                                  return;
+                              }
+                              applyPreset(cfg, idx);
+                              if (isNew) buttons.add(cfg);
+                              saveButtons();
+                              renderControls();
+                              Toast.makeText(this, "Назначено: " + cfg.keyLabel, Toast.LENGTH_SHORT).show();
+                          })
+                          .setNegativeButton(cfg.removable && !isNew ? "Удалить кнопку" : "Отмена", (d, w) -> {
+                              if (cfg.removable && !isNew) {
+                                  buttons.remove(cfg);
+                                  saveButtons();
+                                  renderControls();
+                              }
+                          })
+                          .show();
+              }
+
+              private void openCustomKeyInputDialog(final CustomButtonConfig cfg, final boolean isNew) {
+                  final EditText input = new EditText(this);
+                  input.setHint("Например: G, T, M, Z, X, 1");
+                  new AlertDialog.Builder(this)
+                          .setTitle("Введите любую клавишу")
+                          .setView(input)
+                          .setPositiveButton("Сохранить", (d, w) -> {
+                              String txt = input.getText().toString().trim().toUpperCase();
+                              if (!txt.isEmpty()) {
+                                  char ch = txt.charAt(0);
+                                  cfg.actionType = CustomButtonConfig.ACTION_KEY;
+                                  cfg.keyLabel = String.valueOf(ch);
+                                  cfg.jsCode = (ch >= '0' && ch <= '9') ? ("Digit" + ch) : ("Key" + ch);
+                                  cfg.keyCode = (int) ch;
+                                  if (isNew) buttons.add(cfg);
+                                  saveButtons();
+                                  renderControls();
+                              }
+                          })
+                          .setNegativeButton("Отмена", null)
+                          .show();
+              }
+
+              private void applyPreset(CustomButtonConfig cfg, int idx) {
+                  switch (idx) {
+                      case 0: setKey(cfg, "W", "KeyW", 87); break;
+                      case 1: setKey(cfg, "A", "KeyA", 65); break;
+                      case 2: setKey(cfg, "S", "KeyS", 83); break;
+                      case 3: setKey(cfg, "D", "KeyD", 68); break;
+                      case 4: setKey(cfg, "F", "KeyF", 70); break;
+                      case 5: setKey(cfg, "Y", "KeyY", 89); break;
+                      case 6: setKey(cfg, "E", "KeyE", 69); break;
+                      case 7: setKey(cfg, "R", "KeyR", 82); break;
+                      case 8: setKey(cfg, "C", "KeyC", 67); break;
+                      case 9: setKey(cfg, "H", "KeyH", 72); break;
+                      case 10: setKey(cfg, "SPACE", "Space", 32); break;
+                      case 11: setKey(cfg, "SHIFT", "ShiftLeft", 16); break;
+                      case 12: setKey(cfg, "CTRL", "ControlLeft", 17); break;
+                      case 13: setKey(cfg, "ESC", "Escape", 27); break;
+                      case 14: setKey(cfg, "ENTER", "Enter", 13); break;
+                      case 15:
+                          cfg.actionType = CustomButtonConfig.ACTION_MOUSE_LEFT;
+                          cfg.keyLabel = "ЛКМ";
+                          cfg.jsCode = "MouseLeft";
+                          cfg.keyCode = 0;
+                          break;
+                      case 16:
+                          cfg.actionType = CustomButtonConfig.ACTION_MOUSE_RIGHT;
+                          cfg.keyLabel = "ПКМ";
+                          cfg.jsCode = "MouseRight";
+                          cfg.keyCode = 2;
+                          break;
+                  }
+              }
+
+              private void setKey(CustomButtonConfig cfg, String label, String code, int keyCode) {
+                  cfg.actionType = CustomButtonConfig.ACTION_KEY;
+                  cfg.keyLabel = label;
+                  cfg.jsCode = code;
+                  cfg.keyCode = keyCode;
+              }
+
+              private void saveButtons() {
+                  prefs.edit().putString(KEY_BUTTONS, CustomButtonConfig.serializeList(buttons)).apply();
+              }
+
+              private Button makeMenuBtn(String text, int bgColor, int txtColor, View.OnClickListener listener) {
                   Button b = new Button(this);
-                  b.setText(label);
-                  b.setTextSize(11);
+                  b.setText(text);
                   b.setAllCaps(false);
-                  b.setTextColor(Color.WHITE);
+                  b.setTextSize(13);
+                  b.setTextColor(txtColor);
                   GradientDrawable bg = new GradientDrawable();
-                  bg.setColor(Color.argb(175, Color.red(color), Color.green(color), Color.blue(color)));
-                  bg.setCornerRadius(dp(18));
-                  bg.setStroke(dp(1), Color.argb(180, 255, 255, 255));
+                  bg.setColor(bgColor);
+                  bg.setCornerRadius(dp(16));
                   b.setBackground(bg);
-
-                  LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(dp(74), dp(46));
-                  lp.setMargins(dp(5), dp(5), dp(5), dp(5));
+                  LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                          LinearLayout.LayoutParams.MATCH_PARENT, dp(42));
+                  lp.setMargins(0, 0, 0, dp(8));
                   b.setLayoutParams(lp);
-
-                  b.setOnTouchListener((v, event) -> {
-                      if (event.getAction() == MotionEvent.ACTION_DOWN) {
-                          v.setAlpha(0.6f);
-                          sendJsKey("keydown", code, keyCode);
-                          return true;
-                      } else if (event.getAction() == MotionEvent.ACTION_UP || event.getAction() == MotionEvent.ACTION_CANCEL) {
-                          v.setAlpha(1.0f);
-                          sendJsKey("keyup", code, keyCode);
-                          return true;
-                      }
-                      return false;
-                  });
+                  b.setOnClickListener(listener);
                   return b;
               }
 
@@ -840,36 +1277,1374 @@ jobs:
                   boolean wasPressed = activeKeys.contains(code);
                   if (pressed && !wasPressed) {
                       activeKeys.add(code);
-                      sendJsKey("keydown", code, keyCode);
+                      sendJsKey("keydown", code, keyCode, null);
                   } else if (!pressed && wasPressed) {
                       activeKeys.remove(code);
-                      sendJsKey("keyup", code, keyCode);
+                      sendJsKey("keyup", code, keyCode, null);
                   }
               }
 
               private void releaseAllDirections() {
                   for (String code : new HashSet<>(activeKeys)) {
-                      sendJsKey("keyup", code, 0);
+                      sendJsKey("keyup", code, 0, null);
                   }
                   activeKeys.clear();
               }
 
-              private void sendJsKey(String type, String code, int keyCode) {
+              private void sendJsKey(String type, String code, int keyCode, String customLabel) {
                   String key = code.replace("Key", "").replace("Arrow", "");
                   if ("Space".equals(code)) key = " ";
-                  if ("ControlLeft".equals(code)) key = "Control";
-                  if ("ShiftLeft".equals(code)) key = "Shift";
-                  if ("Escape".equals(code)) key = "Escape";
+                  else if ("ControlLeft".equals(code)) key = "Control";
+                  else if ("ShiftLeft".equals(code)) key = "Shift";
+                  else if ("Escape".equals(code)) key = "Escape";
+                  else if ("Enter".equals(code)) key = "Enter";
+                  else if (customLabel != null && customLabel.length() == 1) key = customLabel;
 
-                  String js = "javascript:(function(){var e=new KeyboardEvent('" + type + "',{key:'" + key + "',code:'" + code + "',keyCode:" + keyCode + ",which:" + keyCode + ",bubbles:true,cancelable:true});document.dispatchEvent(e);window.dispatchEvent(e);var c=document.querySelector('canvas');if(c)c.dispatchEvent(e);})();";
+                  String js = "(function(){var e=new KeyboardEvent('" + type + "',{key:'" + key + "',code:'" + code + "',keyCode:" + keyCode + ",which:" + keyCode + ",bubbles:true,cancelable:true});document.dispatchEvent(e);window.dispatchEvent(e);var c=document.querySelector('canvas');if(c)c.dispatchEvent(e);})();";
                   webView.evaluateJavascript(js, null);
               }
 
-              private void hideSystemUi() {
-                  getWindow().getDecorView().setSystemUiVisibility(
-                          View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
-                                  | View.SYSTEM_UI_FLAG_FULLSCREEN
-                                  | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION);
+              private void sendJsMouse(String type, int button) {
+                  int buttonsMask = "mouseup".equals(type) ? 0 : (button == 2 ? 2 : 1);
+                  String js = "(function(){var t=document.querySelector('canvas')||document.elementFromPoint(window.innerWidth/2,window.innerHeight/2)||document;var e=new MouseEvent('" + type + "',{button:" + button + ",buttons:" + buttonsMask + ",clientX:window.innerWidth/2,clientY:window.innerHeight/2,bubbles:true,cancelable:true});t.dispatchEvent(e);})();";
+                  webView.evaluateJavascript(js, null);
+              }
+
+              private boolean isLightColor(int color) {
+                  double lum = (0.299 * Color.red(color) + 0.587 * Color.green(color) + 0.114 * Color.blue(color)) / 255.0;
+                  return lum > 0.65;
+              }
+
+              private int dp(int val) {
+                  return Math.round(val * getResources().getDisplayMetrics().density);
+              }
+          }
+          EOF
+
+      - name: Build APK
+        run: |
+          gradle assembleDebug --no-daemon
+          cp app/build/outputs/apk/debug/app-debug.apk "GTA PORTS LAUNCHER.apk"
+
+      - name: Upload GTA PORTS LAUNCHER.apk
+        uses: actions/upload-artifact@v4
+        with:
+          name: GTA PORTS LAUNCHER
+          path: GTA PORTS LAUNCHER.apkname: Build GTA PORTS LAUNCHER APK
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Install Android SDK Platform 34 & Build Tools
+        run: |
+          SDK_DIR="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
+          SDKMANAGER=$(find "$SDK_DIR/cmdline-tools" -name sdkmanager -type f | head -n 1)
+          echo "ANDROID_HOME=$SDK_DIR" >> "$GITHUB_ENV"
+          echo "$SDK_DIR/platform-tools" >> "$GITHUB_PATH"
+          yes | "$SDKMANAGER" --licenses > /dev/null 2>&1 || true
+          "$SDKMANAGER" "platforms;android-34" "build-tools;34.0.0"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.7'
+
+      - name: Generate Android Launcher Project
+        run: |
+          mkdir -p app/src/main/java/com/gtaports/launcher
+          mkdir -p app/src/main/res/values
+
+          cat << 'EOF' > settings.gradle
+          pluginManagement {
+              repositories {
+                  google()
+                  mavenCentral()
+                  gradlePluginPortal()
+              }
+          }
+          dependencyResolutionManagement {
+              repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+              repositories {
+                  google()
+                  mavenCentral()
+              }
+          }
+          rootProject.name = "GTAPortsLauncher"
+          include ':app'
+          EOF
+
+          cat << 'EOF' > build.gradle
+          plugins {
+              id 'com.android.application' version '8.5.2' apply false
+          }
+          EOF
+
+          cat << 'EOF' > gradle.properties
+          org.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8
+          android.useAndroidX=false
+          EOF
+
+          cat << 'EOF' > app/build.gradle
+          plugins {
+              id 'com.android.application'
+          }
+
+          android {
+              namespace 'com.gtaports.launcher'
+              compileSdk 34
+
+              defaultConfig {
+                  applicationId "com.gtaports.launcher"
+                  minSdk 24
+                  targetSdk 34
+                  versionCode 2
+                  versionName "2.0"
+              }
+
+              buildTypes {
+                  release {
+                      minifyEnabled false
+                  }
+                  debug {
+                      debuggable true
+                  }
+              }
+
+              compileOptions {
+                  sourceCompatibility JavaVersion.VERSION_17
+                  targetCompatibility JavaVersion.VERSION_17
+              }
+          }
+
+          dependencies {
+          }
+          EOF
+
+          cat << 'EOF' > app/src/main/res/values/strings.xml
+          <resources>
+              <string name="app_name">GTA PORTS LAUNCHER</string>
+          </resources>
+          EOF
+
+          cat << 'EOF' > app/src/main/res/values/styles.xml
+          <resources>
+              <style name="AppTheme" parent="android:Theme.Material.NoActionBar">
+                  <item name="android:windowBackground">#0E1118</item>
+                  <item name="android:statusBarColor">#0E1118</item>
+                  <item name="android:navigationBarColor">#0E1118</item>
+              </style>
+              <style name="GameTheme" parent="android:Theme.Material.NoActionBar.Fullscreen">
+                  <item name="android:windowBackground">#000000</item>
+                  <item name="android:windowFullscreen">true</item>
+              </style>
+          </resources>
+          EOF
+
+          cat << 'EOF' > app/src/main/AndroidManifest.xml
+          <?xml version="1.0" encoding="utf-8"?>
+          <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+              <uses-permission android:name="android.permission.INTERNET" />
+              <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
+              <application
+                  android:allowBackup="true"
+                  android:hardwareAccelerated="true"
+                  android:label="@string/app_name"
+                  android:theme="@style/AppTheme"
+                  android:usesCleartextTraffic="true">
+
+                  <activity
+                      android:name=".MainActivity"
+                      android:exported="true"
+                      android:screenOrientation="unspecified">
+                      <intent-filter>
+                          <action android:name="android.intent.action.MAIN" />
+                          <category android:name="android.intent.category.LAUNCHER" />
+                      </intent-filter>
+                  </activity>
+
+                  <activity
+                      android:name=".GameActivity"
+                      android:configChanges="orientation|screenSize|keyboardHidden|smallestScreenSize|screenLayout"
+                      android:exported="false"
+                      android:hardwareAccelerated="true"
+                      android:screenOrientation="sensorLandscape"
+                      android:theme="@style/GameTheme" />
+              </application>
+          </manifest>
+          EOF
+
+          cat << 'EOF' > app/src/main/java/com/gtaports/launcher/PortInfo.java
+          package com.gtaports.launcher;
+
+          public class PortInfo {
+              public final String id;
+              public final String title;
+              public final String subtitle;
+              public final String badge;
+              public final String url;
+              public final boolean mobileReady;
+              public final boolean defaultDesktopUa;
+              public final int accentColor;
+
+              public PortInfo(String id, String title, String subtitle, String badge,
+                              String url, boolean mobileReady, boolean defaultDesktopUa, int accentColor) {
+                  this.id = id;
+                  this.title = title;
+                  this.subtitle = subtitle;
+                  this.badge = badge;
+                  this.url = url;
+                  this.mobileReady = mobileReady;
+                  this.defaultDesktopUa = defaultDesktopUa;
+                  this.accentColor = accentColor;
+              }
+          }
+          EOF
+
+          cat << 'EOF' > app/src/main/java/com/gtaports/launcher/PortCatalog.java
+          package com.gtaports.launcher;
+
+          import java.util.ArrayList;
+          import java.util.List;
+
+          public class PortCatalog {
+              public static List<PortInfo> getVerifiedPorts() {
+                  List<PortInfo> list = new ArrayList<>();
+
+                  list.add(new PortInfo(
+                          "gta_vc",
+                          "GTA: Vice City",
+                          "reVC WebAssembly • 1986 Майами • Поддержка сохранений",
+                          "РЕКОМЕНДУЕТСЯ • ТЕЛЕФОН",
+                          "https://www.inxanitylabs.com/games/gta-vice-city",
+                          true, false, 0xFF00D296
+                  ));
+
+                  list.add(new PortInfo(
+                          "gta_3",
+                          "GTA III",
+                          "re3 WebAssembly • Либерти-Сити • 3 зеркала",
+                          "ПРОВЕРЕН • ТЕЛЕФОН",
+                          "https://www.inxanitylabs.com/games/gta-3",
+                          true, false, 0xFF38BDF8
+                  ));
+
+                  list.add(new PortInfo(
+                          "gta_sa",
+                          "GTA: San Andreas (PS2)",
+                          "PCSX2 WebAssembly • Полная PS2-версия в браузере",
+                          "PS2 ЭМУЛЯЦИЯ",
+                          "https://www.inxanitylabs.com/games/gta-san-andreas-ps2-version",
+                          false, true, 0xFF22C55E
+                  ));
+
+                  list.add(new PortInfo(
+                          "gta_vcs",
+                          "GTA: Vice City Stories",
+                          "PSP/PS2 порт • История Вика Вэнса",
+                          "PSP ПОРТ",
+                          "https://www.inxanitylabs.com/games/gta-vice-city-stories",
+                          false, true, 0xFFF472B6
+                  ));
+
+                  list.add(new PortInfo(
+                          "gta_4",
+                          "GTA IV",
+                          "PlayTab WebGPU • Нико Беллик • Нужен мощный GPU",
+                          "WEBGPU • ПК-РЕЖИМ",
+                          "https://www.inxanitylabs.com/games/grand-theft-auto-iv",
+                          false, true, 0xFF60A5FA
+                  ));
+
+                  list.add(new PortInfo(
+                          "gta_5",
+                          "GTA V",
+                          "WASM/WebGPU • Лос-Сантос (Sandbox и Story)",
+                          "WEBGPU • ПК-РЕЖИМ",
+                          "https://www.inxanitylabs.com/games/gta-v",
+                          false, true, 0xFF34D399
+                  ));
+
+                  list.add(new PortInfo(
+                          "gta_2",
+                          "GTA 2",
+                          "Co-op до 6 игроков • ~355 МБ кэш",
+                          "КООПЕРАТИВ • КЛАССИКА",
+                          "https://www.inxanitylabs.com/games/gta-2",
+                          false, true, 0xFFA78BFA
+                  ));
+
+                  list.add(new PortInfo(
+                          "gta_1",
+                          "Grand Theft Auto (1997)",
+                          "Оригинальный DOS-релиз с виртуальной локальной сетью",
+                          "КЛАССИКА • DOS",
+                          "https://www.inxanitylabs.com/games/grand-theft-auto-1997",
+                          false, true, 0xFFFB7185
+                  ));
+
+                  return list;
+              }
+          }
+          EOF
+
+          cat << 'EOF' > app/src/main/java/com/gtaports/launcher/CustomButtonConfig.java
+          package com.gtaports.launcher;
+
+          import org.json.JSONArray;
+          import org.json.JSONObject;
+
+          import java.util.ArrayList;
+          import java.util.List;
+
+          public class CustomButtonConfig {
+              public static final String ACTION_KEY = "KEY";
+              public static final String ACTION_MOUSE_LEFT = "MOUSE_LEFT";
+              public static final String ACTION_MOUSE_RIGHT = "MOUSE_RIGHT";
+
+              public String id;
+              public String name;
+              public int color;
+              public String actionType;
+              public String keyLabel;
+              public String jsCode;
+              public int keyCode;
+              public float xFraction;
+              public float yFraction;
+              public boolean removable;
+
+              public CustomButtonConfig(String id, String name, int color, String actionType,
+                                        String keyLabel, String jsCode, int keyCode,
+                                        float xFraction, float yFraction, boolean removable) {
+                  this.id = id;
+                  this.name = name;
+                  this.color = color;
+                  this.actionType = actionType;
+                  this.keyLabel = keyLabel;
+                  this.jsCode = jsCode;
+                  this.keyCode = keyCode;
+                  this.xFraction = xFraction;
+                  this.yFraction = yFraction;
+                  this.removable = removable;
+              }
+
+              public JSONObject toJson() {
+                  JSONObject o = new JSONObject();
+                  try {
+                      o.put("id", id);
+                      o.put("name", name);
+                      o.put("color", color);
+                      o.put("actionType", actionType);
+                      o.put("keyLabel", keyLabel);
+                      o.put("jsCode", jsCode);
+                      o.put("keyCode", keyCode);
+                      o.put("xFraction", xFraction);
+                      o.put("yFraction", yFraction);
+                      o.put("removable", removable);
+                  } catch (Exception ignored) {}
+                  return o;
+              }
+
+              public static CustomButtonConfig fromJson(JSONObject o) {
+                  return new CustomButtonConfig(
+                          o.optString("id", "btn"),
+                          o.optString("name", "Кнопка"),
+                          o.optInt("color", 0xFFFB7185),
+                          o.optString("actionType", ACTION_KEY),
+                          o.optString("keyLabel", "F"),
+                          o.optString("jsCode", "KeyF"),
+                          o.optInt("keyCode", 70),
+                          (float) o.optDouble("xFraction", 0.2),
+                          (float) o.optDouble("yFraction", 0.5),
+                          o.optBoolean("removable", false)
+                  );
+              }
+
+              public static List<CustomButtonConfig> defaults() {
+                  List<CustomButtonConfig> list = new ArrayList<>();
+                  // 4-кнопочный ромб слева, как на схеме
+                  list.add(new CustomButtonConfig(
+                          "red_top", "Красная (верх)", 0xFFFF6B6B,
+                          ACTION_KEY, "F", "KeyF", 70, 0.14f, 0.44f, false
+                  ));
+                  list.add(new CustomButtonConfig(
+                          "blue_left", "Синяя (лево)", 0xFF0EA5E9,
+                          ACTION_MOUSE_LEFT, "ЛКМ", "MouseLeft", 0, 0.07f, 0.58f, false
+                  ));
+                  list.add(new CustomButtonConfig(
+                          "green_right", "Зелёная (право)", 0xFFBDF55A,
+                          ACTION_KEY, "SPACE", "Space", 32, 0.21f, 0.58f, false
+                  ));
+                  list.add(new CustomButtonConfig(
+                          "orange_bottom", "Оранжевая (низ)", 0xFFF59E0B,
+                          ACTION_KEY, "SHIFT", "ShiftLeft", 16, 0.14f, 0.72f, false
+                  ));
+                  return list;
+              }
+
+              public static String serializeList(List<CustomButtonConfig> list) {
+                  JSONArray arr = new JSONArray();
+                  for (CustomButtonConfig c : list) arr.put(c.toJson());
+                  return arr.toString();
+              }
+
+              public static List<CustomButtonConfig> deserializeList(String json) {
+                  if (json == null || json.isEmpty()) return defaults();
+                  try {
+                      JSONArray arr = new JSONArray(json);
+                      List<CustomButtonConfig> list = new ArrayList<>();
+                      for (int i = 0; i < arr.length(); i++) {
+                          list.add(fromJson(arr.getJSONObject(i)));
+                      }
+                      return list.isEmpty() ? defaults() : list;
+                  } catch (Exception e) {
+                      return defaults();
+                  }
+              }
+          }
+          EOF
+
+          cat << 'EOF' > app/src/main/java/com/gtaports/launcher/VirtualJoystickView.java
+          package com.gtaports.launcher;
+
+          import android.content.Context;
+          import android.graphics.Canvas;
+          import android.graphics.Color;
+          import android.graphics.Paint;
+          import android.view.MotionEvent;
+          import android.view.View;
+
+          public class VirtualJoystickView extends View {
+              public interface JoystickListener {
+                  void onJoystickMoved(float xPercent, float yPercent);
+              }
+
+              private final Paint baseFill = new Paint(Paint.ANTI_ALIAS_FLAG);
+              private final Paint outerRing = new Paint(Paint.ANTI_ALIAS_FLAG);
+              private final Paint innerRing = new Paint(Paint.ANTI_ALIAS_FLAG);
+              private final Paint hatFill = new Paint(Paint.ANTI_ALIAS_FLAG);
+
+              private float centerX;
+              private float centerY;
+              private float baseRadius;
+              private float hatRadius;
+              private float hatX;
+              private float hatY;
+              private JoystickListener listener;
+
+              public VirtualJoystickView(Context context) {
+                  super(context);
+                  baseFill.setColor(Color.argb(40, 255, 255, 255));
+                  baseFill.setStyle(Paint.Style.FILL);
+
+                  outerRing.setColor(Color.argb(190, 148, 163, 184));
+                  outerRing.setStyle(Paint.Style.STROKE);
+                  outerRing.setStrokeWidth(5f);
+
+                  hatFill.setColor(Color.argb(65, 255, 255, 255));
+                  hatFill.setStyle(Paint.Style.FILL);
+
+                  innerRing.setColor(Color.argb(220, 148, 163, 184));
+                  innerRing.setStyle(Paint.Style.STROKE);
+                  innerRing.setStrokeWidth(5f);
+              }
+
+              public void setJoystickListener(JoystickListener listener) {
+                  this.listener = listener;
+              }
+
+              @Override
+              protected void onSizeChanged(int w, int h, int oldw, int oldh) {
+                  super.onSizeChanged(w, h, oldw, oldh);
+                  centerX = w / 2f;
+                  centerY = h / 2f;
+                  float minDim = Math.min(w, h);
+                  baseRadius = minDim * 0.40f;
+                  hatRadius = minDim * 0.16f;
+                  hatX = centerX;
+                  hatY = centerY;
+              }
+
+              @Override
+              protected void onDraw(Canvas canvas) {
+                  super.onDraw(canvas);
+                  canvas.drawCircle(centerX, centerY, baseRadius, baseFill);
+                  canvas.drawCircle(centerX, centerY, baseRadius, outerRing);
+                  canvas.drawCircle(hatX, hatY, hatRadius, hatFill);
+                  canvas.drawCircle(hatX, hatY, hatRadius, innerRing);
+              }
+
+              @Override
+              public boolean onTouchEvent(MotionEvent event) {
+                  int action = event.getActionMasked();
+                  if (action == MotionEvent.ACTION_DOWN || action == MotionEvent.ACTION_MOVE) {
+                      float dx = event.getX() - centerX;
+                      float dy = event.getY() - centerY;
+                      float dist = (float) Math.hypot(dx, dy);
+                      if (dist > baseRadius && dist > 0) {
+                          hatX = centerX + (dx / dist) * baseRadius;
+                          hatY = centerY + (dy / dist) * baseRadius;
+                      } else {
+                          hatX = event.getX();
+                          hatY = event.getY();
+                      }
+                      invalidate();
+                      if (listener != null && baseRadius > 0) {
+                          listener.onJoystickMoved((hatX - centerX) / baseRadius, (hatY - centerY) / baseRadius);
+                      }
+                      return true;
+                  } else if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL) {
+                      hatX = centerX;
+                      hatY = centerY;
+                      invalidate();
+                      if (listener != null) {
+                          listener.onJoystickMoved(0f, 0f);
+                      }
+                      return true;
+                  }
+                  return super.onTouchEvent(event);
+              }
+          }
+          EOF
+
+          cat << 'EOF' > app/src/main/java/com/gtaports/launcher/MainActivity.java
+          package com.gtaports.launcher;
+
+          import android.app.Activity;
+          import android.content.Intent;
+          import android.content.SharedPreferences;
+          import android.graphics.Color;
+          import android.graphics.Typeface;
+          import android.graphics.drawable.GradientDrawable;
+          import android.os.Bundle;
+          import android.os.Handler;
+          import android.os.Looper;
+          import android.view.Gravity;
+          import android.view.View;
+          import android.webkit.WebSettings;
+          import android.webkit.WebView;
+          import android.webkit.WebViewClient;
+          import android.widget.Button;
+          import android.widget.LinearLayout;
+          import android.widget.ScrollView;
+          import android.widget.TextView;
+          import android.widget.Toast;
+
+          import java.util.List;
+
+          public class MainActivity extends Activity {
+              private static final String PREFS = "gta_ports_prefs";
+              private SharedPreferences prefs;
+              private LinearLayout listContainer;
+              private String currentFilter = "all";
+              private WebView preloadWebView;
+              private final Handler mainHandler = new Handler(Looper.getMainLooper());
+              private Button btnAll, btnMobile, btnDesktop;
+
+              @Override
+              protected void onCreate(Bundle savedInstanceState) {
+                  super.onCreate(savedInstanceState);
+                  prefs = getSharedPreferences(PREFS, MODE_PRIVATE);
+
+                  preloadWebView = new WebView(this);
+                  WebSettings ws = preloadWebView.getSettings();
+                  ws.setJavaScriptEnabled(true);
+                  ws.setDomStorageEnabled(true);
+                  ws.setDatabaseEnabled(true);
+                  ws.setCacheMode(WebSettings.LOAD_DEFAULT);
+
+                  LinearLayout root = new LinearLayout(this);
+                  root.setOrientation(LinearLayout.VERTICAL);
+                  root.setBackgroundColor(0xFF0E1118);
+                  root.setPadding(dp(18), dp(22), dp(18), dp(12));
+
+                  // ColorOS Game Space Header
+                  LinearLayout headerCard = new LinearLayout(this);
+                  headerCard.setOrientation(LinearLayout.VERTICAL);
+                  GradientDrawable headerBg = new GradientDrawable(
+                          GradientDrawable.Orientation.TL_BR,
+                          new int[]{0xFF172234, 0xFF121622}
+                  );
+                  headerBg.setCornerRadius(dp(24));
+                  headerBg.setStroke(dp(1), 0xFF28354D);
+                  headerCard.setBackground(headerBg);
+                  headerCard.setPadding(dp(18), dp(16), dp(18), dp(16));
+
+                  TextView chip = new TextView(this);
+                  chip.setText("COLOR OS GAME SPACE • INXANITY LABS");
+                  chip.setTextColor(0xFF00D296);
+                  chip.setTextSize(11);
+                  chip.setTypeface(Typeface.DEFAULT_BOLD);
+                  headerCard.addView(chip);
+
+                  TextView title = new TextView(this);
+                  title.setText("GTA PORTS LAUNCHER");
+                  title.setTextColor(Color.WHITE);
+                  title.setTextSize(24);
+                  title.setTypeface(Typeface.create("sans-serif-medium", Typeface.BOLD));
+                  title.setPadding(0, dp(4), 0, dp(2));
+                  headerCard.addView(title);
+
+                  TextView sub = new TextView(this);
+                  sub.setText("Полноэкранный запуск • Настраиваемый джойстик и кнопки");
+                  sub.setTextColor(0xFF94A3B8);
+                  sub.setTextSize(13);
+                  headerCard.addView(sub);
+
+                  LinearLayout.LayoutParams hLp = new LinearLayout.LayoutParams(
+                          LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+                  hLp.setMargins(0, 0, 0, dp(14));
+                  root.addView(headerCard, hLp);
+
+                  LinearLayout filterRow = new LinearLayout(this);
+                  filterRow.setOrientation(LinearLayout.HORIZONTAL);
+                  filterRow.setPadding(0, 0, 0, dp(14));
+                  btnAll = makeFilterBtn("Все (8)", "all");
+                  btnMobile = makeFilterBtn("Телефон", "mobile");
+                  btnDesktop = makeFilterBtn("ПК-режим", "desktop");
+                  filterRow.addView(btnAll);
+                  filterRow.addView(btnMobile);
+                  filterRow.addView(btnDesktop);
+                  root.addView(filterRow);
+
+                  ScrollView scroll = new ScrollView(this);
+                  scroll.setVerticalScrollBarEnabled(false);
+                  listContainer = new LinearLayout(this);
+                  listContainer.setOrientation(LinearLayout.VERTICAL);
+                  scroll.addView(listContainer);
+                  root.addView(scroll, new LinearLayout.LayoutParams(
+                          LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f));
+
+                  setContentView(root);
+                  updateFilterStyles();
+                  renderPorts();
+              }
+
+              private Button makeFilterBtn(String label, final String filterKey) {
+                  Button b = new Button(this);
+                  b.setText(label);
+                  b.setTextSize(13);
+                  b.setAllCaps(false);
+                  b.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
+                  LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                          LinearLayout.LayoutParams.WRAP_CONTENT, dp(38));
+                  lp.setMargins(0, 0, dp(8), 0);
+                  b.setLayoutParams(lp);
+                  b.setPadding(dp(16), 0, dp(16), 0);
+                  b.setOnClickListener(v -> {
+                      currentFilter = filterKey;
+                      updateFilterStyles();
+                      renderPorts();
+                  });
+                  return b;
+              }
+
+              private void updateFilterStyles() {
+                  styleFilter(btnAll, "all".equals(currentFilter));
+                  styleFilter(btnMobile, "mobile".equals(currentFilter));
+                  styleFilter(btnDesktop, "desktop".equals(currentFilter));
+              }
+
+              private void styleFilter(Button b, boolean active) {
+                  GradientDrawable bg = new GradientDrawable();
+                  bg.setCornerRadius(dp(20));
+                  if (active) {
+                      bg.setColor(0xFF00D296);
+                      b.setTextColor(0xFF06120E);
+                  } else {
+                      bg.setColor(0xFF1A202E);
+                      bg.setStroke(dp(1), 0xFF283146);
+                      b.setTextColor(0xFFCBD5E1);
+                  }
+                  b.setBackground(bg);
+              }
+
+              private void renderPorts() {
+                  listContainer.removeAllViews();
+                  List<PortInfo> ports = PortCatalog.getVerifiedPorts();
+                  for (PortInfo port : ports) {
+                      if ("mobile".equals(currentFilter) && !port.mobileReady) continue;
+                      if ("desktop".equals(currentFilter) && port.mobileReady) continue;
+                      listContainer.addView(createPortCard(port));
+                  }
+              }
+
+              private View createPortCard(final PortInfo port) {
+                  LinearLayout card = new LinearLayout(this);
+                  card.setOrientation(LinearLayout.VERTICAL);
+                  GradientDrawable cardBg = new GradientDrawable();
+                  cardBg.setColor(0xFF161B26);
+                  cardBg.setCornerRadius(dp(22));
+                  cardBg.setStroke(dp(1), 0xFF262F42);
+                  card.setBackground(cardBg);
+                  card.setPadding(dp(18), dp(16), dp(18), dp(16));
+
+                  LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                          LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+                  lp.setMargins(0, 0, 0, dp(12));
+                  card.setLayoutParams(lp);
+
+                  TextView badge = new TextView(this);
+                  badge.setText(port.badge);
+                  badge.setTextColor(port.accentColor);
+                  badge.setTextSize(11);
+                  badge.setTypeface(Typeface.DEFAULT_BOLD);
+                  card.addView(badge);
+
+                  TextView name = new TextView(this);
+                  name.setText(port.title);
+                  name.setTextColor(Color.WHITE);
+                  name.setTextSize(19);
+                  name.setTypeface(Typeface.create("sans-serif-medium", Typeface.BOLD));
+                  name.setPadding(0, dp(4), 0, dp(4));
+                  card.addView(name);
+
+                  TextView desc = new TextView(this);
+                  desc.setText(port.subtitle);
+                  desc.setTextColor(0xFF94A3B8);
+                  desc.setTextSize(13);
+                  desc.setPadding(0, 0, 0, dp(10));
+                  card.addView(desc);
+
+                  final boolean isCached = prefs.getBoolean("cached_" + port.id, false);
+                  final TextView statusView = new TextView(this);
+                  statusView.setText(isCached ? "● Кэшировано и готово" : "○ Не скачано");
+                  statusView.setTextColor(isCached ? 0xFF00D296 : 0xFF64748B);
+                  statusView.setTextSize(12);
+                  statusView.setPadding(0, 0, 0, dp(12));
+                  card.addView(statusView);
+
+                  LinearLayout btnRow = new LinearLayout(this);
+                  btnRow.setOrientation(LinearLayout.HORIZONTAL);
+                  btnRow.setGravity(Gravity.CENTER_VERTICAL);
+
+                  final Button downloadBtn = new Button(this);
+                  downloadBtn.setText(isCached ? "Обновить" : "Скачать");
+                  downloadBtn.setAllCaps(false);
+                  downloadBtn.setTextColor(Color.WHITE);
+                  downloadBtn.setTextSize(14);
+                  GradientDrawable dlBg = new GradientDrawable();
+                  dlBg.setColor(0xFF222A3A);
+                  dlBg.setCornerRadius(dp(18));
+                  downloadBtn.setBackground(dlBg);
+                  LinearLayout.LayoutParams dlLp = new LinearLayout.LayoutParams(0, dp(44), 1f);
+                  dlLp.setMargins(0, 0, dp(10), 0);
+                  downloadBtn.setLayoutParams(dlLp);
+
+                  downloadBtn.setOnClickListener(v -> {
+                      statusView.setText("◌ Загрузка файлов порта...");
+                      statusView.setTextColor(0xFFFBBF24);
+                      downloadBtn.setEnabled(false);
+                      preloadWebView.setWebViewClient(new WebViewClient() {
+                          @Override
+                          public void onPageFinished(WebView view, String url) {
+                              prefs.edit().putBoolean("cached_" + port.id, true).apply();
+                              mainHandler.post(() -> {
+                                  statusView.setText("● Кэшировано и готово");
+                                  statusView.setTextColor(0xFF00D296);
+                                  downloadBtn.setText("Обновить");
+                                  downloadBtn.setEnabled(true);
+                                  Toast.makeText(MainActivity.this, port.title + " готов к запуску!", Toast.LENGTH_SHORT).show();
+                              });
+                          }
+                      });
+                      preloadWebView.loadUrl(port.url);
+                  });
+
+                  Button playBtn = new Button(this);
+                  playBtn.setText("▶ Играть");
+                  playBtn.setAllCaps(false);
+                  playBtn.setTextColor(0xFF06120E);
+                  playBtn.setTextSize(14);
+                  playBtn.setTypeface(Typeface.DEFAULT_BOLD);
+                  GradientDrawable playBg = new GradientDrawable();
+                  playBg.setColor(port.accentColor);
+                  playBg.setCornerRadius(dp(18));
+                  playBtn.setBackground(playBg);
+                  LinearLayout.LayoutParams playLp = new LinearLayout.LayoutParams(0, dp(44), 1.2f);
+                  playBtn.setLayoutParams(playLp);
+
+                  playBtn.setOnClickListener(v -> {
+                      Intent intent = new Intent(MainActivity.this, GameActivity.class);
+                      intent.putExtra("title", port.title);
+                      intent.putExtra("url", port.url);
+                      intent.putExtra("id", port.id);
+                      intent.putExtra("desktopUa", port.defaultDesktopUa);
+                      startActivity(intent);
+                  });
+
+                  btnRow.addView(downloadBtn);
+                  btnRow.addView(playBtn);
+                  card.addView(btnRow);
+                  return card;
+              }
+
+              private int dp(int val) {
+                  return Math.round(val * getResources().getDisplayMetrics().density);
+              }
+          }
+          EOF
+
+          cat << 'EOF' > app/src/main/java/com/gtaports/launcher/GameActivity.java
+          package com.gtaports.launcher;
+
+          import android.app.Activity;
+          import android.app.AlertDialog;
+          import android.content.SharedPreferences;
+          import android.graphics.Color;
+          import android.graphics.Typeface;
+          import android.graphics.drawable.GradientDrawable;
+          import android.os.Build;
+          import android.os.Bundle;
+          import android.view.Gravity;
+          import android.view.MotionEvent;
+          import android.view.View;
+          import android.view.WindowInsets;
+          import android.view.WindowInsetsController;
+          import android.view.WindowManager;
+          import android.webkit.WebChromeClient;
+          import android.webkit.WebSettings;
+          import android.webkit.WebView;
+          import android.webkit.WebViewClient;
+          import android.widget.Button;
+          import android.widget.EditText;
+          import android.widget.FrameLayout;
+          import android.widget.LinearLayout;
+          import android.widget.ScrollView;
+          import android.widget.TextView;
+          import android.widget.Toast;
+
+          import java.util.HashSet;
+          import java.util.List;
+          import java.util.Set;
+
+          public class GameActivity extends Activity {
+              private static final String PREFS = "gta_ports_prefs";
+              private static final String KEY_BUTTONS = "custom_buttons_v2";
+              private static final String DESKTOP_UA =
+                      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36";
+
+              private SharedPreferences prefs;
+              private WebView webView;
+              private FrameLayout rootLayout;
+              private FrameLayout controlsOverlay;
+              private VirtualJoystickView joystickView;
+              private List<CustomButtonConfig> buttons;
+
+              private boolean joystickVisible = true;
+              private boolean arrowMode = false;
+              private boolean desktopUa = false;
+              private boolean editDragMode = false;
+              private final Set<String> activeKeys = new HashSet<>();
+
+              @Override
+              protected void onCreate(Bundle savedInstanceState) {
+                  super.onCreate(savedInstanceState);
+                  getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+                  if (Build.VERSION.SDK_INT >= 28) {
+                      WindowManager.LayoutParams lp = getWindow().getAttributes();
+                      lp.layoutInDisplayCutoutMode =
+                              WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES;
+                      getWindow().setAttributes(lp);
+                  }
+
+                  prefs = getSharedPreferences(PREFS, MODE_PRIVATE);
+                  buttons = CustomButtonConfig.deserializeList(prefs.getString(KEY_BUTTONS, ""));
+
+                  String portUrl = getIntent().getStringExtra("url");
+                  String portId = getIntent().getStringExtra("id");
+                  desktopUa = getIntent().getBooleanExtra("desktopUa", false);
+                  boolean cached = prefs.getBoolean("cached_" + portId, false);
+
+                  rootLayout = new FrameLayout(this);
+                  rootLayout.setBackgroundColor(Color.BLACK);
+
+                  webView = new WebView(this);
+                  configureWebView(cached);
+                  rootLayout.addView(webView, new FrameLayout.LayoutParams(
+                          FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT));
+
+                  controlsOverlay = new FrameLayout(this);
+                  rootLayout.addView(controlsOverlay, new FrameLayout.LayoutParams(
+                          FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT));
+
+                  // Овальная кнопка настроек в правом верхнем углу (как на схеме)
+                  Button menuOval = createTopRightMenuOval();
+                  FrameLayout.LayoutParams ovalLp = new FrameLayout.LayoutParams(dp(64), dp(40));
+                  ovalLp.gravity = Gravity.TOP | Gravity.END;
+                  ovalLp.topMargin = dp(12);
+                  ovalLp.rightMargin = dp(14);
+                  rootLayout.addView(menuOval, ovalLp);
+
+                  setContentView(rootLayout);
+                  enterFullscreen();
+
+                  rootLayout.post(this::renderControls);
+
+                  if (portUrl != null) {
+                      webView.loadUrl(portUrl);
+                  }
+              }
+
+              @Override
+              public void onWindowFocusChanged(boolean hasFocus) {
+                  super.onWindowFocusChanged(hasFocus);
+                  if (hasFocus) enterFullscreen();
+              }
+
+              private void enterFullscreen() {
+                  if (Build.VERSION.SDK_INT >= 30) {
+                      getWindow().setDecorFitsSystemWindows(false);
+                      WindowInsetsController c = getWindow().getInsetsController();
+                      if (c != null) {
+                          c.hide(WindowInsets.Type.statusBars() | WindowInsets.Type.navigationBars());
+                          c.setSystemBarsBehavior(WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
+                      }
+                  } else {
+                      getWindow().getDecorView().setSystemUiVisibility(
+                              View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+                                      | View.SYSTEM_UI_FLAG_FULLSCREEN
+                                      | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                                      | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                                      | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                                      | View.SYSTEM_UI_FLAG_LAYOUT_STABLE);
+                  }
+              }
+
+              private void configureWebView(boolean cached) {
+                  WebSettings s = webView.getSettings();
+                  s.setJavaScriptEnabled(true);
+                  s.setDomStorageEnabled(true);
+                  s.setDatabaseEnabled(true);
+                  s.setMediaPlaybackRequiresUserGesture(false);
+                  s.setUseWideViewPort(true);
+                  s.setLoadWithOverviewMode(true);
+                  s.setCacheMode(cached ? WebSettings.LOAD_CACHE_ELSE_NETWORK : WebSettings.LOAD_DEFAULT);
+                  if (desktopUa) {
+                      s.setUserAgentString(DESKTOP_UA);
+                  }
+                  webView.setWebViewClient(new WebViewClient() {
+                      @Override
+                      public void onPageFinished(WebView view, String url) {
+                          super.onPageFinished(view, url);
+                          // Автоматически скрываем лишние шапки и разворачиваем игровой плеер
+                          String fsJs = "(function(){try{" +
+                                  "var s=document.createElement('style');" +
+                                  "s.innerHTML='header,nav,.cookies,footer{display:none!important;}';" +
+                                  "document.head.appendChild(s);" +
+                                  "}catch(e){}})();";
+                          view.evaluateJavascript(fsJs, null);
+                      }
+                  });
+                  webView.setWebChromeClient(new WebChromeClient());
+              }
+
+              private Button createTopRightMenuOval() {
+                  Button b = new Button(this);
+                  b.setText("⚙");
+                  b.setTextSize(16);
+                  b.setTextColor(0xFFFF6B6B);
+                  GradientDrawable bg = new GradientDrawable();
+                  bg.setColor(Color.argb(90, 15, 23, 42));
+                  bg.setCornerRadius(dp(24));
+                  bg.setStroke(dp(3), 0xFFFF6B6B);
+                  b.setBackground(bg);
+                  b.setPadding(0, 0, 0, 0);
+                  b.setOnClickListener(v -> openColorOsControlMenu());
+                  return b;
+              }
+
+              private void renderControls() {
+                  controlsOverlay.removeAllViews();
+                  int w = rootLayout.getWidth();
+                  int h = rootLayout.getHeight();
+                  if (w <= 0 || h <= 0) return;
+
+                  // Круглый джойстик справа (как на схеме)
+                  joystickView = new VirtualJoystickView(this);
+                  int joySize = dp(170);
+                  FrameLayout.LayoutParams joyLp = new FrameLayout.LayoutParams(joySize, joySize);
+                  joyLp.gravity = Gravity.BOTTOM | Gravity.END;
+                  joyLp.rightMargin = dp(24);
+                  joyLp.bottomMargin = dp(18);
+                  joystickView.setJoystickListener(this::handleJoystick);
+                  controlsOverlay.addView(joystickView, joyLp);
+
+                  // Все цветные кнопки (4 стандартные слева + добавленные пользователем)
+                  int btnSize = dp(54);
+                  for (final CustomButtonConfig cfg : buttons) {
+                      Button btn = new Button(this);
+                      btn.setText(cfg.keyLabel);
+                      btn.setTextSize(11);
+                      btn.setAllCaps(false);
+                      btn.setTypeface(Typeface.DEFAULT_BOLD);
+                      btn.setTextColor(isLightColor(cfg.color) ? 0xFF0F172A : Color.WHITE);
+                      btn.setPadding(0, 0, 0, 0);
+
+                      GradientDrawable circle = new GradientDrawable();
+                      circle.setShape(GradientDrawable.OVAL);
+                      circle.setColor(Color.argb(215, Color.red(cfg.color), Color.green(cfg.color), Color.blue(cfg.color)));
+                      circle.setStroke(dp(3), 0xFF0B0D14);
+                      btn.setBackground(circle);
+
+                      FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(btnSize, btnSize);
+                      lp.leftMargin = Math.max(0, Math.min(w - btnSize, Math.round(cfg.xFraction * w)));
+                      lp.topMargin = Math.max(0, Math.min(h - btnSize, Math.round(cfg.yFraction * h)));
+                      btn.setLayoutParams(lp);
+
+                      btn.setOnTouchListener(new View.OnTouchListener() {
+                          float dX, dY;
+                          @Override
+                          public boolean onTouch(View v, MotionEvent event) {
+                              if (editDragMode) {
+                                  FrameLayout.LayoutParams p = (FrameLayout.LayoutParams) v.getLayoutParams();
+                                  switch (event.getActionMasked()) {
+                                      case MotionEvent.ACTION_DOWN:
+                                          dX = p.leftMargin - event.getRawX();
+                                          dY = p.topMargin - event.getRawY();
+                                          return true;
+                                      case MotionEvent.ACTION_MOVE:
+                                          int nx = Math.max(0, Math.min(w - btnSize, Math.round(event.getRawX() + dX)));
+                                          int ny = Math.max(0, Math.min(h - btnSize, Math.round(event.getRawY() + dY)));
+                                          p.leftMargin = nx;
+                                          p.topMargin = ny;
+                                          v.setLayoutParams(p);
+                                          cfg.xFraction = (float) nx / w;
+                                          cfg.yFraction = (float) ny / h;
+                                          return true;
+                                      case MotionEvent.ACTION_UP:
+                                          saveButtons();
+                                          return true;
+                                  }
+                                  return true;
+                              }
+
+                              if (event.getAction() == MotionEvent.ACTION_DOWN) {
+                                  v.setAlpha(0.6f);
+                                  triggerConfigAction(cfg, true);
+                                  return true;
+                              } else if (event.getAction() == MotionEvent.ACTION_UP || event.getAction() == MotionEvent.ACTION_CANCEL) {
+                                  v.setAlpha(1.0f);
+                                  triggerConfigAction(cfg, false);
+                                  return true;
+                              }
+                              return false;
+                          }
+                      });
+                      controlsOverlay.addView(btn);
+                  }
+              }
+
+              private void triggerConfigAction(CustomButtonConfig cfg, boolean down) {
+                  if (CustomButtonConfig.ACTION_MOUSE_LEFT.equals(cfg.actionType)) {
+                      sendJsMouse(down ? "mousedown" : "mouseup", 0);
+                      if (!down) sendJsMouse("click", 0);
+                  } else if (CustomButtonConfig.ACTION_MOUSE_RIGHT.equals(cfg.actionType)) {
+                      sendJsMouse(down ? "mousedown" : "mouseup", 2);
+                      if (!down) sendJsMouse("contextmenu", 2);
+                  } else {
+                      sendJsKey(down ? "keydown" : "keyup", cfg.jsCode, cfg.keyCode, cfg.keyLabel);
+                  }
+              }
+
+              private void openColorOsControlMenu() {
+                  LinearLayout sheet = new LinearLayout(this);
+                  sheet.setOrientation(LinearLayout.VERTICAL);
+                  sheet.setBackgroundColor(0xFF161B26);
+                  sheet.setPadding(dp(20), dp(18), dp(20), dp(18));
+
+                  TextView h = new TextView(this);
+                  h.setText("Настройки ColorOS Game Space");
+                  h.setTextColor(Color.WHITE);
+                  h.setTextSize(18);
+                  h.setTypeface(Typeface.DEFAULT_BOLD);
+                  h.setPadding(0, 0, 0, dp(12));
+                  sheet.addView(h);
+
+                  ScrollView sv = new ScrollView(this);
+                  LinearLayout list = new LinearLayout(this);
+                  list.setOrientation(LinearLayout.VERTICAL);
+                  sv.addView(list);
+                  sheet.addView(sv, new LinearLayout.LayoutParams(
+                          LinearLayout.LayoutParams.MATCH_PARENT, dp(240)));
+
+                  final AlertDialog dlg = new AlertDialog.Builder(this)
+                          .setView(sheet)
+                          .create();
+
+                  list.addView(makeMenuBtn("✏️ Заменить функцию кнопки", 0xFF00D296, 0xFF06120E, v -> {
+                      dlg.dismiss();
+                      openPickButtonToEditDialog();
+                  }));
+
+                  list.addView(makeMenuBtn("➕ Добавить новую кнопку", 0xFF38BDF8, 0xFF06121A, v -> {
+                      dlg.dismiss();
+                      openAddButtonDialog();
+                  }));
+
+                  list.addView(makeMenuBtn(editDragMode ? "✅ Готово (сохранить позиции)" : "✋ Передвинуть кнопки по экрану",
+                          0xFF222A3A, Color.WHITE, v -> {
+                              editDragMode = !editDragMode;
+                              dlg.dismiss();
+                              Toast.makeText(this, editDragMode ? "Перетащите кнопки куда удобно" : "Позиции сохранены", Toast.LENGTH_SHORT).show();
+                          }));
+
+                  list.addView(makeMenuBtn(joystickVisible ? "🎮 Скрыть джойстик и кнопки" : "🎮 Показать джойстик и кнопки",
+                          0xFF222A3A, Color.WHITE, v -> {
+                              joystickVisible = !joystickVisible;
+                              controlsOverlay.setVisibility(joystickVisible ? View.VISIBLE : View.GONE);
+                              dlg.dismiss();
+                          }));
+
+                  list.addView(makeMenuBtn(arrowMode ? "⌨️ Стик: Стрелки (сменить на WASD)" : "⌨️ Стик: WASD (сменить на Стрелки)",
+                          0xFF222A3A, Color.WHITE, v -> {
+                              releaseAllDirections();
+                              arrowMode = !arrowMode;
+                              dlg.dismiss();
+                          }));
+
+                  list.addView(makeMenuBtn(desktopUa ? "🖥️ Режим: ПК (сменить на Телефон)" : "📱 Режим: Телефон (сменить на ПК)",
+                          0xFF222A3A, Color.WHITE, v -> {
+                              desktopUa = !desktopUa;
+                              webView.getSettings().setUserAgentString(desktopUa ? DESKTOP_UA : null);
+                              webView.reload();
+                              dlg.dismiss();
+                          }));
+
+                  list.addView(makeMenuBtn("↺ Сбросить кнопки по умолчанию", 0xFF222A3A, 0xFFFBBF24, v -> {
+                      buttons = CustomButtonConfig.defaults();
+                      saveButtons();
+                      renderControls();
+                      dlg.dismiss();
+                  }));
+
+                  list.addView(makeMenuBtn("◀ Выйти в лаунчер", 0xFF3B1B24, 0xFFFF6B6B, v -> {
+                      dlg.dismiss();
+                      finish();
+                  }));
+
+                  dlg.show();
+              }
+
+              private void openPickButtonToEditDialog() {
+                  String[] names = new String[buttons.size()];
+                  for (int i = 0; i < buttons.size(); i++) {
+                      CustomButtonConfig c = buttons.get(i);
+                      names[i] = c.name + "  [" + c.keyLabel + "]";
+                  }
+                  new AlertDialog.Builder(this)
+                          .setTitle("Выберите кнопку")
+                          .setItems(names, (d, idx) -> openAssignFunctionDialog(buttons.get(idx), false))
+                          .show();
+              }
+
+              private void openAddButtonDialog() {
+                  final String[] colorNames = {"Красная", "Синяя", "Зелёная", "Оранжевая", "Фиолетовая", "Белая"};
+                  final int[] colors = {0xFFFF6B6B, 0xFF0EA5E9, 0xFFBDF55A, 0xFFF59E0B, 0xFFA78BFA, 0xFFE2E8F0};
+                  new AlertDialog.Builder(this)
+                          .setTitle("Цвет новой кнопки")
+                          .setItems(colorNames, (d, idx) -> {
+                              CustomButtonConfig nb = new CustomButtonConfig(
+                                      "custom_" + System.currentTimeMillis(),
+                                      colorNames[idx] + " (доп)",
+                                      colors[idx],
+                                      CustomButtonConfig.ACTION_KEY,
+                                      "Y", "KeyY", 89,
+                                      0.32f, 0.58f, true
+                              );
+                              openAssignFunctionDialog(nb, true);
+                          })
+                          .show();
+              }
+
+              private void openAssignFunctionDialog(final CustomButtonConfig cfg, final boolean isNew) {
+                  final String[] labels = {
+                          "W (Вперёд / Газ)", "A (Влево)", "S (Назад / Тормоз)", "D (Вправо)",
+                          "F (Сесть в авто)", "Y (Да / Действие)", "E (Действие)", "R (Радио)",
+                          "C (Присесть)", "H (Сигнал)", "SPACE (Прыжок / Ручник)",
+                          "SHIFT (Спринт)", "CTRL (Выстрел)", "ESC (Меню)", "ENTER (Ввод)",
+                          "Л. клик мыши (ЛКМ)", "П. клик мыши (ПКМ)", "⌨️ Своя клавиша (ввести букву)"
+                  };
+                  new AlertDialog.Builder(this)
+                          .setTitle("Функция для: " + cfg.name)
+                          .setItems(labels, (d, idx) -> {
+                              if (idx == labels.length - 1) {
+                                  openCustomKeyInputDialog(cfg, isNew);
+                                  return;
+                              }
+                              applyPreset(cfg, idx);
+                              if (isNew) buttons.add(cfg);
+                              saveButtons();
+                              renderControls();
+                              Toast.makeText(this, "Назначено: " + cfg.keyLabel, Toast.LENGTH_SHORT).show();
+                          })
+                          .setNegativeButton(cfg.removable && !isNew ? "Удалить кнопку" : "Отмена", (d, w) -> {
+                              if (cfg.removable && !isNew) {
+                                  buttons.remove(cfg);
+                                  saveButtons();
+                                  renderControls();
+                              }
+                          })
+                          .show();
+              }
+
+              private void openCustomKeyInputDialog(final CustomButtonConfig cfg, final boolean isNew) {
+                  final EditText input = new EditText(this);
+                  input.setHint("Например: G, T, M, Z, X, 1");
+                  new AlertDialog.Builder(this)
+                          .setTitle("Введите любую клавишу")
+                          .setView(input)
+                          .setPositiveButton("Сохранить", (d, w) -> {
+                              String txt = input.getText().toString().trim().toUpperCase();
+                              if (!txt.isEmpty()) {
+                                  char ch = txt.charAt(0);
+                                  cfg.actionType = CustomButtonConfig.ACTION_KEY;
+                                  cfg.keyLabel = String.valueOf(ch);
+                                  cfg.jsCode = (ch >= '0' && ch <= '9') ? ("Digit" + ch) : ("Key" + ch);
+                                  cfg.keyCode = (int) ch;
+                                  if (isNew) buttons.add(cfg);
+                                  saveButtons();
+                                  renderControls();
+                              }
+                          })
+                          .setNegativeButton("Отмена", null)
+                          .show();
+              }
+
+              private void applyPreset(CustomButtonConfig cfg, int idx) {
+                  switch (idx) {
+                      case 0: setKey(cfg, "W", "KeyW", 87); break;
+                      case 1: setKey(cfg, "A", "KeyA", 65); break;
+                      case 2: setKey(cfg, "S", "KeyS", 83); break;
+                      case 3: setKey(cfg, "D", "KeyD", 68); break;
+                      case 4: setKey(cfg, "F", "KeyF", 70); break;
+                      case 5: setKey(cfg, "Y", "KeyY", 89); break;
+                      case 6: setKey(cfg, "E", "KeyE", 69); break;
+                      case 7: setKey(cfg, "R", "KeyR", 82); break;
+                      case 8: setKey(cfg, "C", "KeyC", 67); break;
+                      case 9: setKey(cfg, "H", "KeyH", 72); break;
+                      case 10: setKey(cfg, "SPACE", "Space", 32); break;
+                      case 11: setKey(cfg, "SHIFT", "ShiftLeft", 16); break;
+                      case 12: setKey(cfg, "CTRL", "ControlLeft", 17); break;
+                      case 13: setKey(cfg, "ESC", "Escape", 27); break;
+                      case 14: setKey(cfg, "ENTER", "Enter", 13); break;
+                      case 15:
+                          cfg.actionType = CustomButtonConfig.ACTION_MOUSE_LEFT;
+                          cfg.keyLabel = "ЛКМ";
+                          cfg.jsCode = "MouseLeft";
+                          cfg.keyCode = 0;
+                          break;
+                      case 16:
+                          cfg.actionType = CustomButtonConfig.ACTION_MOUSE_RIGHT;
+                          cfg.keyLabel = "ПКМ";
+                          cfg.jsCode = "MouseRight";
+                          cfg.keyCode = 2;
+                          break;
+                  }
+              }
+
+              private void setKey(CustomButtonConfig cfg, String label, String code, int keyCode) {
+                  cfg.actionType = CustomButtonConfig.ACTION_KEY;
+                  cfg.keyLabel = label;
+                  cfg.jsCode = code;
+                  cfg.keyCode = keyCode;
+              }
+
+              private void saveButtons() {
+                  prefs.edit().putString(KEY_BUTTONS, CustomButtonConfig.serializeList(buttons)).apply();
+              }
+
+              private Button makeMenuBtn(String text, int bgColor, int txtColor, View.OnClickListener listener) {
+                  Button b = new Button(this);
+                  b.setText(text);
+                  b.setAllCaps(false);
+                  b.setTextSize(13);
+                  b.setTextColor(txtColor);
+                  GradientDrawable bg = new GradientDrawable();
+                  bg.setColor(bgColor);
+                  bg.setCornerRadius(dp(16));
+                  b.setBackground(bg);
+                  LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                          LinearLayout.LayoutParams.MATCH_PARENT, dp(42));
+                  lp.setMargins(0, 0, 0, dp(8));
+                  b.setLayoutParams(lp);
+                  b.setOnClickListener(listener);
+                  return b;
+              }
+
+              private void handleJoystick(float x, float y) {
+                  float threshold = 0.30f;
+                  String upCode = arrowMode ? "ArrowUp" : "KeyW";
+                  int upKey = arrowMode ? 38 : 87;
+                  String downCode = arrowMode ? "ArrowDown" : "KeyS";
+                  int downKey = arrowMode ? 40 : 83;
+                  String leftCode = arrowMode ? "ArrowLeft" : "KeyA";
+                  int leftKey = arrowMode ? 37 : 65;
+                  String rightCode = arrowMode ? "ArrowRight" : "KeyD";
+                  int rightKey = arrowMode ? 39 : 68;
+
+                  updateKeyState(upCode, upKey, y < -threshold);
+                  updateKeyState(downCode, downKey, y > threshold);
+                  updateKeyState(leftCode, leftKey, x < -threshold);
+                  updateKeyState(rightCode, rightKey, x > threshold);
+              }
+
+              private void updateKeyState(String code, int keyCode, boolean pressed) {
+                  boolean wasPressed = activeKeys.contains(code);
+                  if (pressed && !wasPressed) {
+                      activeKeys.add(code);
+                      sendJsKey("keydown", code, keyCode, null);
+                  } else if (!pressed && wasPressed) {
+                      activeKeys.remove(code);
+                      sendJsKey("keyup", code, keyCode, null);
+                  }
+              }
+
+              private void releaseAllDirections() {
+                  for (String code : new HashSet<>(activeKeys)) {
+                      sendJsKey("keyup", code, 0, null);
+                  }
+                  activeKeys.clear();
+              }
+
+              private void sendJsKey(String type, String code, int keyCode, String customLabel) {
+                  String key = code.replace("Key", "").replace("Arrow", "");
+                  if ("Space".equals(code)) key = " ";
+                  else if ("ControlLeft".equals(code)) key = "Control";
+                  else if ("ShiftLeft".equals(code)) key = "Shift";
+                  else if ("Escape".equals(code)) key = "Escape";
+                  else if ("Enter".equals(code)) key = "Enter";
+                  else if (customLabel != null && customLabel.length() == 1) key = customLabel;
+
+                  String js = "(function(){var e=new KeyboardEvent('" + type + "',{key:'" + key + "',code:'" + code + "',keyCode:" + keyCode + ",which:" + keyCode + ",bubbles:true,cancelable:true});document.dispatchEvent(e);window.dispatchEvent(e);var c=document.querySelector('canvas');if(c)c.dispatchEvent(e);})();";
+                  webView.evaluateJavascript(js, null);
+              }
+
+              private void sendJsMouse(String type, int button) {
+                  int buttonsMask = "mouseup".equals(type) ? 0 : (button == 2 ? 2 : 1);
+                  String js = "(function(){var t=document.querySelector('canvas')||document.elementFromPoint(window.innerWidth/2,window.innerHeight/2)||document;var e=new MouseEvent('" + type + "',{button:" + button + ",buttons:" + buttonsMask + ",clientX:window.innerWidth/2,clientY:window.innerHeight/2,bubbles:true,cancelable:true});t.dispatchEvent(e);})();";
+                  webView.evaluateJavascript(js, null);
+              }
+
+              private boolean isLightColor(int color) {
+                  double lum = (0.299 * Color.red(color) + 0.587 * Color.green(color) + 0.114 * Color.blue(color)) / 255.0;
+                  return lum > 0.65;
               }
 
               private int dp(int val) {

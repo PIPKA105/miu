@@ -81,8 +81,8 @@ jobs:
                   applicationId "com.gtaports.launcher"
                   minSdk 24
                   targetSdk 34
-                  versionCode 3
-                  versionName "2.1"
+                  versionCode 4
+                  versionName "2.2"
               }
 
               buildTypes {
@@ -789,6 +789,8 @@ jobs:
           import android.os.Message;
           import android.os.SystemClock;
           import android.view.Gravity;
+          import android.view.InputDevice;
+          import android.view.KeyCharacterMap;
           import android.view.KeyEvent;
           import android.view.MotionEvent;
           import android.view.View;
@@ -824,6 +826,8 @@ jobs:
               private WebView webView;
               private FrameLayout rootLayout;
               private FrameLayout controlsOverlay;
+              private FrameLayout fullscreenContainer;
+              private WebChromeClient.CustomViewCallback customViewCallback;
               private VirtualJoystickView joystickView;
               private List<CustomButtonConfig> buttons;
 
@@ -861,6 +865,11 @@ jobs:
                   webView.setFocusableInTouchMode(true);
                   configureWebView(cached);
                   rootLayout.addView(webView, new FrameLayout.LayoutParams(
+                          FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT));
+
+                  fullscreenContainer = new FrameLayout(this);
+                  fullscreenContainer.setVisibility(View.GONE);
+                  rootLayout.addView(fullscreenContainer, new FrameLayout.LayoutParams(
                           FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT));
 
                   controlsOverlay = new FrameLayout(this);
@@ -939,11 +948,10 @@ jobs:
                       @Override
                       public void onPageFinished(WebView view, String url) {
                           super.onPageFinished(view, url);
-                          injectFullscreenBooster(view, url);
+                          injectAutoFullscreenWatcher(view);
                       }
                   });
 
-                  // Перехват target="_blank" и window.open(), чтобы кнопки Play открывались прямо здесь!
                   webView.setWebChromeClient(new WebChromeClient() {
                       @Override
                       public boolean onCreateWindow(WebView view, boolean isDialog, boolean isUserGesture, Message resultMsg) {
@@ -963,29 +971,71 @@ jobs:
                           resultMsg.sendToTarget();
                           return true;
                       }
+
+                      @Override
+                      public void onShowCustomView(View view, CustomViewCallback callback) {
+                          if (customViewCallback != null) {
+                              callback.onCustomViewHidden();
+                              return;
+                          }
+                          customViewCallback = callback;
+                          fullscreenContainer.removeAllViews();
+                          fullscreenContainer.addView(view, new FrameLayout.LayoutParams(
+                                  FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT));
+                          fullscreenContainer.setVisibility(View.VISIBLE);
+                          webView.setVisibility(View.GONE);
+                          enterFullscreen();
+                      }
+
+                      @Override
+                      public void onHideCustomView() {
+                          fullscreenContainer.setVisibility(View.GONE);
+                          fullscreenContainer.removeAllViews();
+                          webView.setVisibility(View.VISIBLE);
+                          if (customViewCallback != null) {
+                              customViewCallback.onCustomViewHidden();
+                              customViewCallback = null;
+                          }
+                      }
                   });
               }
 
-              private void injectFullscreenBooster(WebView view, String url) {
-                  String js = "(function(){try{" +
-                          "var s=document.createElement('style');" +
-                          "s.innerHTML='header,nav,.cookies,footer{display:none!important;}';" +
-                          "document.head.appendChild(s);" +
+              private void injectAutoFullscreenWatcher(WebView view) {
+                  String js = "(function(){if(window.__gtaWatcher)return;window.__gtaWatcher=true;" +
+                          "function check(){try{" +
                           "if(location.hostname.indexOf('inxanitylabs.com')!==-1){" +
-                          "  var ifr=document.querySelector('iframe[src]');" +
-                          "  if(ifr && ifr.src && ifr.src.indexOf('http')===0 && ifr.src.indexOf('ads')===-1){" +
-                          "    ifr.style.cssText='position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:999999;border:none;';" +
+                          "  var ifrs=document.querySelectorAll('iframe[src]');" +
+                          "  for(var i=0;i<ifrs.length;i++){" +
+                          "    var src=ifrs[i].src||'';" +
+                          "    if(src.indexOf('http')===0 && src.indexOf('ads')===-1 && src.indexOf('doubleclick')===-1 && src.indexOf('youtube')===-1){" +
+                          "      window.location.href=src; return;" +
+                          "    }" +
                           "  }" +
                           "}else{" +
                           "  var c=document.querySelector('canvas');" +
-                          "  if(c){c.focus();}" +
+                          "  if(c){" +
+                          "    c.style.position='fixed';c.style.top='0';c.style.left='0';" +
+                          "    c.style.width='100vw';c.style.height='100vh';c.style.zIndex='99999';" +
+                          "    c.style.objectFit='contain';c.style.background='#000';" +
+                          "    if(!c.hasAttribute('tabindex'))c.setAttribute('tabindex','0');" +
+                          "    c.focus();" +
+                          "  }" +
                           "}" +
-                          "}catch(e){}})();";
+                          "}catch(e){}}" +
+                          "setInterval(check,800);check();" +
+                          "})();";
                   view.evaluateJavascript(js, null);
               }
 
               private void forceCanvasFullscreen() {
                   String js = "(function(){try{" +
+                          "var ifrs=document.querySelectorAll('iframe[src]');" +
+                          "for(var i=0;i<ifrs.length;i++){" +
+                          "  var src=ifrs[i].src||'';" +
+                          "  if(src.indexOf('http')===0 && src.indexOf('ads')===-1 && src.indexOf('doubleclick')===-1){" +
+                          "    window.location.href=src; return;" +
+                          "  }" +
+                          "}" +
                           "var el=document.querySelector('canvas')||document.querySelector('iframe');" +
                           "if(el){" +
                           "  el.style.cssText='position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:999999;border:none;object-fit:contain;background:#000;';" +
@@ -1113,7 +1163,12 @@ jobs:
                   if (androidKeyCode <= 0) return;
                   long now = SystemClock.uptimeMillis();
                   int action = down ? KeyEvent.ACTION_DOWN : KeyEvent.ACTION_UP;
-                  webView.dispatchKeyEvent(new KeyEvent(now, now, action, androidKeyCode, 0));
+                  KeyEvent ev = new KeyEvent(
+                          now, now, action, androidKeyCode, 0, 0,
+                          KeyCharacterMap.VIRTUAL_KEYBOARD, 0,
+                          KeyEvent.FLAG_FROM_SYSTEM, InputDevice.SOURCE_KEYBOARD
+                  );
+                  webView.dispatchKeyEvent(ev);
               }
 
               private void dispatchNativeTap(boolean down) {

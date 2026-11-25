@@ -81,8 +81,8 @@ jobs:
                   applicationId "com.gtaports.launcher"
                   minSdk 24
                   targetSdk 34
-                  versionCode 4
-                  versionName "2.2"
+                  versionCode 5
+                  versionName "2.3"
               }
 
               buildTypes {
@@ -826,8 +826,6 @@ jobs:
               private WebView webView;
               private FrameLayout rootLayout;
               private FrameLayout controlsOverlay;
-              private FrameLayout fullscreenContainer;
-              private WebChromeClient.CustomViewCallback customViewCallback;
               private VirtualJoystickView joystickView;
               private List<CustomButtonConfig> buttons;
 
@@ -865,11 +863,6 @@ jobs:
                   webView.setFocusableInTouchMode(true);
                   configureWebView(cached);
                   rootLayout.addView(webView, new FrameLayout.LayoutParams(
-                          FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT));
-
-                  fullscreenContainer = new FrameLayout(this);
-                  fullscreenContainer.setVisibility(View.GONE);
-                  rootLayout.addView(fullscreenContainer, new FrameLayout.LayoutParams(
                           FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT));
 
                   controlsOverlay = new FrameLayout(this);
@@ -948,7 +941,7 @@ jobs:
                       @Override
                       public void onPageFinished(WebView view, String url) {
                           super.onPageFinished(view, url);
-                          injectAutoFullscreenWatcher(view);
+                          injectAutoFullscreenCSS(view);
                       }
                   });
 
@@ -971,79 +964,68 @@ jobs:
                           resultMsg.sendToTarget();
                           return true;
                       }
-
-                      @Override
-                      public void onShowCustomView(View view, CustomViewCallback callback) {
-                          if (customViewCallback != null) {
-                              callback.onCustomViewHidden();
-                              return;
-                          }
-                          customViewCallback = callback;
-                          fullscreenContainer.removeAllViews();
-                          fullscreenContainer.addView(view, new FrameLayout.LayoutParams(
-                                  FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT));
-                          fullscreenContainer.setVisibility(View.VISIBLE);
-                          webView.setVisibility(View.GONE);
-                          enterFullscreen();
-                      }
-
-                      @Override
-                      public void onHideCustomView() {
-                          fullscreenContainer.setVisibility(View.GONE);
-                          fullscreenContainer.removeAllViews();
-                          webView.setVisibility(View.VISIBLE);
-                          if (customViewCallback != null) {
-                              customViewCallback.onCustomViewHidden();
-                              customViewCallback = null;
-                          }
-                      }
                   });
               }
 
-              private void injectAutoFullscreenWatcher(WebView view) {
-                  String js = "(function(){if(window.__gtaWatcher)return;window.__gtaWatcher=true;" +
-                          "function check(){try{" +
-                          "if(location.hostname.indexOf('inxanitylabs.com')!==-1){" +
-                          "  var ifrs=document.querySelectorAll('iframe[src]');" +
-                          "  for(var i=0;i<ifrs.length;i++){" +
-                          "    var src=ifrs[i].src||'';" +
-                          "    if(src.indexOf('http')===0 && src.indexOf('ads')===-1 && src.indexOf('doubleclick')===-1 && src.indexOf('youtube')===-1){" +
-                          "      window.location.href=src; return;" +
+              private void injectAutoFullscreenCSS(WebView view) {
+                  String js = "(function(){if(window.__gtaFs)return;window.__gtaFs=true;" +
+                          "function expandGame(){" +
+                          "  try{" +
+                          "    var ifrs=document.querySelectorAll('iframe');" +
+                          "    var gameIfr=null;" +
+                          "    for(var i=0;i<ifrs.length;i++){" +
+                          "      var r=ifrs[i].getBoundingClientRect();" +
+                          "      var src=ifrs[i].src||'';" +
+                          "      if(r.width>200 && r.height>150 && src.indexOf('doubleclick')===-1 && src.indexOf('googlesyndication')===-1){" +
+                          "        gameIfr=ifrs[i]; break;" +
+                          "      }" +
                           "    }" +
-                          "  }" +
-                          "}else{" +
-                          "  var c=document.querySelector('canvas');" +
-                          "  if(c){" +
-                          "    c.style.position='fixed';c.style.top='0';c.style.left='0';" +
-                          "    c.style.width='100vw';c.style.height='100vh';c.style.zIndex='99999';" +
-                          "    c.style.objectFit='contain';c.style.background='#000';" +
-                          "    if(!c.hasAttribute('tabindex'))c.setAttribute('tabindex','0');" +
-                          "    c.focus();" +
-                          "  }" +
+                          "    if(gameIfr){" +
+                          "      var p=gameIfr.parentElement;" +
+                          "      while(p && p!==document.body){" +
+                          "        p.style.setProperty('overflow','visible','important');" +
+                          "        p.style.setProperty('transform','none','important');" +
+                          "        p.style.setProperty('filter','none','important');" +
+                          "        p.style.setProperty('perspective','none','important');" +
+                          "        p=p.parentElement;" +
+                          "      }" +
+                          "      gameIfr.style.setProperty('position','fixed','important');" +
+                          "      gameIfr.style.setProperty('top','0','important');" +
+                          "      gameIfr.style.setProperty('left','0','important');" +
+                          "      gameIfr.style.setProperty('width','100vw','important');" +
+                          "      gameIfr.style.setProperty('height','100vh','important');" +
+                          "      gameIfr.style.setProperty('z-index','2147483647','important');" +
+                          "      gameIfr.style.setProperty('border','none','important');" +
+                          "      gameIfr.style.setProperty('background','#000','important');" +
+                          "      document.documentElement.style.setProperty('overflow','hidden','important');" +
+                          "      document.body.style.setProperty('overflow','hidden','important');" +
+                          "      try{gameIfr.focus();}catch(e){}" +
+                          "      return;" +
+                          "    }" +
+                          "    var c=document.querySelector('canvas');" +
+                          "    if(c){" +
+                          "      var cp=c.parentElement;" +
+                          "      while(cp && cp!==document.body){" +
+                          "        cp.style.setProperty('overflow','visible','important');" +
+                          "        cp.style.setProperty('transform','none','important');" +
+                          "        cp=cp.parentElement;" +
+                          "      }" +
+                          "      c.style.setProperty('position','fixed','important');" +
+                          "      c.style.setProperty('top','0','important');" +
+                          "      c.style.setProperty('left','0','important');" +
+                          "      c.style.setProperty('width','100vw','important');" +
+                          "      c.style.setProperty('height','100vh','important');" +
+                          "      c.style.setProperty('z-index','2147483647','important');" +
+                          "      c.style.setProperty('object-fit','contain','important');" +
+                          "      c.style.setProperty('background','#000','important');" +
+                          "      if(!c.hasAttribute('tabindex'))c.setAttribute('tabindex','0');" +
+                          "      c.focus();" +
+                          "    }" +
+                          "  }catch(e){}" +
                           "}" +
-                          "}catch(e){}}" +
-                          "setInterval(check,800);check();" +
+                          "setInterval(expandGame,1000);expandGame();" +
                           "})();";
                   view.evaluateJavascript(js, null);
-              }
-
-              private void forceCanvasFullscreen() {
-                  String js = "(function(){try{" +
-                          "var ifrs=document.querySelectorAll('iframe[src]');" +
-                          "for(var i=0;i<ifrs.length;i++){" +
-                          "  var src=ifrs[i].src||'';" +
-                          "  if(src.indexOf('http')===0 && src.indexOf('ads')===-1 && src.indexOf('doubleclick')===-1){" +
-                          "    window.location.href=src; return;" +
-                          "  }" +
-                          "}" +
-                          "var el=document.querySelector('canvas')||document.querySelector('iframe');" +
-                          "if(el){" +
-                          "  el.style.cssText='position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:999999;border:none;object-fit:contain;background:#000;';" +
-                          "  el.focus();" +
-                          "}" +
-                          "if(document.documentElement.requestFullscreen){document.documentElement.requestFullscreen().catch(function(){});}" +
-                          "}catch(e){}})();";
-                  webView.evaluateJavascript(js, null);
               }
 
               private Button createTopRightMenuOval() {
@@ -1207,7 +1189,8 @@ jobs:
                           .create();
 
                   list.addView(makeMenuBtn("⛶ Развернуть игру на весь экран", 0xFF00D296, 0xFF06120E, v -> {
-                      forceCanvasFullscreen();
+                      webView.evaluateJavascript("window.__gtaFs=false;", null);
+                      injectAutoFullscreenCSS(webView);
                       dlg.dismiss();
                   }));
 
@@ -1249,6 +1232,11 @@ jobs:
                               webView.reload();
                               dlg.dismiss();
                           }));
+
+                  list.addView(makeMenuBtn("🔄 Перезагрузить игру", 0xFF222A3A, Color.WHITE, v -> {
+                      webView.reload();
+                      dlg.dismiss();
+                  }));
 
                   list.addView(makeMenuBtn("↺ Сбросить кнопки по умолчанию", 0xFF222A3A, 0xFFFBBF24, v -> {
                       buttons = CustomButtonConfig.defaults();

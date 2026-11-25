@@ -81,8 +81,8 @@ jobs:
                   applicationId "com.gtaports.launcher"
                   minSdk 24
                   targetSdk 34
-                  versionCode 2
-                  versionName "2.0"
+                  versionCode 3
+                  versionName "2.1"
               }
 
               buildTypes {
@@ -252,7 +252,7 @@ jobs:
                   list.add(new PortInfo(
                           "gta_2",
                           "GTA 2",
-                          "Co-op до 6 игроков • ~355 МБ кэш",
+                          "Co-op до 6 игроков • Широкий экран • ~355 МБ кэш",
                           "КООПЕРАТИВ • КЛАССИКА",
                           "https://www.inxanitylabs.com/games/gta-2",
                           false, true, 0xFFA78BFA
@@ -275,6 +275,7 @@ jobs:
           cat << 'EOF' > app/src/main/java/com/gtaports/launcher/CustomButtonConfig.java
           package com.gtaports.launcher;
 
+          import android.view.KeyEvent;
           import org.json.JSONArray;
           import org.json.JSONObject;
 
@@ -293,12 +294,13 @@ jobs:
               public String keyLabel;
               public String jsCode;
               public int keyCode;
+              public int androidKeyCode;
               public float xFraction;
               public float yFraction;
               public boolean removable;
 
               public CustomButtonConfig(String id, String name, int color, String actionType,
-                                        String keyLabel, String jsCode, int keyCode,
+                                        String keyLabel, String jsCode, int keyCode, int androidKeyCode,
                                         float xFraction, float yFraction, boolean removable) {
                   this.id = id;
                   this.name = name;
@@ -307,6 +309,7 @@ jobs:
                   this.keyLabel = keyLabel;
                   this.jsCode = jsCode;
                   this.keyCode = keyCode;
+                  this.androidKeyCode = androidKeyCode;
                   this.xFraction = xFraction;
                   this.yFraction = yFraction;
                   this.removable = removable;
@@ -322,6 +325,7 @@ jobs:
                       o.put("keyLabel", keyLabel);
                       o.put("jsCode", jsCode);
                       o.put("keyCode", keyCode);
+                      o.put("androidKeyCode", androidKeyCode);
                       o.put("xFraction", xFraction);
                       o.put("yFraction", yFraction);
                       o.put("removable", removable);
@@ -338,6 +342,7 @@ jobs:
                           o.optString("keyLabel", "F"),
                           o.optString("jsCode", "KeyF"),
                           o.optInt("keyCode", 70),
+                          o.optInt("androidKeyCode", KeyEvent.KEYCODE_F),
                           (float) o.optDouble("xFraction", 0.2),
                           (float) o.optDouble("yFraction", 0.5),
                           o.optBoolean("removable", false)
@@ -346,22 +351,21 @@ jobs:
 
               public static List<CustomButtonConfig> defaults() {
                   List<CustomButtonConfig> list = new ArrayList<>();
-                  // 4-кнопочный ромб слева, как на схеме
                   list.add(new CustomButtonConfig(
                           "red_top", "Красная (верх)", 0xFFFF6B6B,
-                          ACTION_KEY, "F", "KeyF", 70, 0.14f, 0.44f, false
+                          ACTION_KEY, "F", "KeyF", 70, KeyEvent.KEYCODE_F, 0.14f, 0.44f, false
                   ));
                   list.add(new CustomButtonConfig(
                           "blue_left", "Синяя (лево)", 0xFF0EA5E9,
-                          ACTION_MOUSE_LEFT, "ЛКМ", "MouseLeft", 0, 0.07f, 0.58f, false
+                          ACTION_MOUSE_LEFT, "ЛКМ", "MouseLeft", 0, 0, 0.07f, 0.58f, false
                   ));
                   list.add(new CustomButtonConfig(
                           "green_right", "Зелёная (право)", 0xFFBDF55A,
-                          ACTION_KEY, "SPACE", "Space", 32, 0.21f, 0.58f, false
+                          ACTION_KEY, "SPACE", "Space", 32, KeyEvent.KEYCODE_SPACE, 0.21f, 0.58f, false
                   ));
                   list.add(new CustomButtonConfig(
                           "orange_bottom", "Оранжевая (низ)", 0xFFF59E0B,
-                          ACTION_KEY, "SHIFT", "ShiftLeft", 16, 0.14f, 0.72f, false
+                          ACTION_KEY, "SHIFT", "ShiftLeft", 16, KeyEvent.KEYCODE_SHIFT_LEFT, 0.14f, 0.72f, false
                   ));
                   return list;
               }
@@ -418,6 +422,9 @@ jobs:
 
               public VirtualJoystickView(Context context) {
                   super(context);
+                  setFocusable(false);
+                  setFocusableInTouchMode(false);
+
                   baseFill.setColor(Color.argb(40, 255, 255, 255));
                   baseFill.setStyle(Paint.Style.FILL);
 
@@ -542,7 +549,6 @@ jobs:
                   root.setBackgroundColor(0xFF0E1118);
                   root.setPadding(dp(18), dp(22), dp(18), dp(12));
 
-                  // ColorOS Game Space Header
                   LinearLayout headerCard = new LinearLayout(this);
                   headerCard.setOrientation(LinearLayout.VERTICAL);
                   GradientDrawable headerBg = new GradientDrawable(
@@ -780,13 +786,17 @@ jobs:
           import android.graphics.drawable.GradientDrawable;
           import android.os.Build;
           import android.os.Bundle;
+          import android.os.Message;
+          import android.os.SystemClock;
           import android.view.Gravity;
+          import android.view.KeyEvent;
           import android.view.MotionEvent;
           import android.view.View;
           import android.view.WindowInsets;
           import android.view.WindowInsetsController;
           import android.view.WindowManager;
           import android.webkit.WebChromeClient;
+          import android.webkit.WebResourceRequest;
           import android.webkit.WebSettings;
           import android.webkit.WebView;
           import android.webkit.WebViewClient;
@@ -798,13 +808,15 @@ jobs:
           import android.widget.TextView;
           import android.widget.Toast;
 
+          import java.util.HashMap;
           import java.util.HashSet;
           import java.util.List;
+          import java.util.Map;
           import java.util.Set;
 
           public class GameActivity extends Activity {
               private static final String PREFS = "gta_ports_prefs";
-              private static final String KEY_BUTTONS = "custom_buttons_v2";
+              private static final String KEY_BUTTONS = "custom_buttons_v3";
               private static final String DESKTOP_UA =
                       "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36";
 
@@ -820,6 +832,7 @@ jobs:
               private boolean desktopUa = false;
               private boolean editDragMode = false;
               private final Set<String> activeKeys = new HashSet<>();
+              private final Map<String, Integer> activeAndroidKeys = new HashMap<>();
 
               @Override
               protected void onCreate(Bundle savedInstanceState) {
@@ -844,6 +857,8 @@ jobs:
                   rootLayout.setBackgroundColor(Color.BLACK);
 
                   webView = new WebView(this);
+                  webView.setFocusable(true);
+                  webView.setFocusableInTouchMode(true);
                   configureWebView(cached);
                   rootLayout.addView(webView, new FrameLayout.LayoutParams(
                           FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT));
@@ -852,7 +867,6 @@ jobs:
                   rootLayout.addView(controlsOverlay, new FrameLayout.LayoutParams(
                           FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT));
 
-                  // Овальная кнопка настроек в правом верхнем углу (как на схеме)
                   Button menuOval = createTopRightMenuOval();
                   FrameLayout.LayoutParams ovalLp = new FrameLayout.LayoutParams(dp(64), dp(40));
                   ovalLp.gravity = Gravity.TOP | Gravity.END;
@@ -862,6 +876,7 @@ jobs:
 
                   setContentView(rootLayout);
                   enterFullscreen();
+                  webView.requestFocus();
 
                   rootLayout.post(this::renderControls);
 
@@ -903,33 +918,93 @@ jobs:
                   s.setMediaPlaybackRequiresUserGesture(false);
                   s.setUseWideViewPort(true);
                   s.setLoadWithOverviewMode(true);
+                  s.setSupportMultipleWindows(true);
+                  s.setJavaScriptCanOpenWindowsAutomatically(true);
                   s.setCacheMode(cached ? WebSettings.LOAD_CACHE_ELSE_NETWORK : WebSettings.LOAD_DEFAULT);
                   if (desktopUa) {
                       s.setUserAgentString(DESKTOP_UA);
                   }
+
                   webView.setWebViewClient(new WebViewClient() {
+                      @Override
+                      public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
+                          String url = request.getUrl().toString();
+                          if (url.startsWith("http://") || url.startsWith("https://")) {
+                              view.loadUrl(url);
+                              return true;
+                          }
+                          return false;
+                      }
+
                       @Override
                       public void onPageFinished(WebView view, String url) {
                           super.onPageFinished(view, url);
-                          // Автоматически скрываем лишние шапки и разворачиваем игровой плеер
-                          String fsJs = "(function(){try{" +
-                                  "var s=document.createElement('style');" +
-                                  "s.innerHTML='header,nav,.cookies,footer{display:none!important;}';" +
-                                  "document.head.appendChild(s);" +
-                                  "}catch(e){}})();";
-                          view.evaluateJavascript(fsJs, null);
+                          injectFullscreenBooster(view, url);
                       }
                   });
-                  webView.setWebChromeClient(new WebChromeClient());
+
+                  // Перехват target="_blank" и window.open(), чтобы кнопки Play открывались прямо здесь!
+                  webView.setWebChromeClient(new WebChromeClient() {
+                      @Override
+                      public boolean onCreateWindow(WebView view, boolean isDialog, boolean isUserGesture, Message resultMsg) {
+                          WebView temp = new WebView(GameActivity.this);
+                          temp.setWebViewClient(new WebViewClient() {
+                              @Override
+                              public boolean shouldOverrideUrlLoading(WebView v, WebResourceRequest req) {
+                                  String targetUrl = req.getUrl().toString();
+                                  if (!targetUrl.contains("doubleclick") && !targetUrl.contains("googlesyndication")) {
+                                      webView.loadUrl(targetUrl);
+                                  }
+                                  return true;
+                              }
+                          });
+                          WebView.WebViewTransport transport = (WebView.WebViewTransport) resultMsg.obj;
+                          transport.setWebView(temp);
+                          resultMsg.sendToTarget();
+                          return true;
+                      }
+                  });
+              }
+
+              private void injectFullscreenBooster(WebView view, String url) {
+                  String js = "(function(){try{" +
+                          "var s=document.createElement('style');" +
+                          "s.innerHTML='header,nav,.cookies,footer{display:none!important;}';" +
+                          "document.head.appendChild(s);" +
+                          "if(location.hostname.indexOf('inxanitylabs.com')!==-1){" +
+                          "  var ifr=document.querySelector('iframe[src]');" +
+                          "  if(ifr && ifr.src && ifr.src.indexOf('http')===0 && ifr.src.indexOf('ads')===-1){" +
+                          "    ifr.style.cssText='position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:999999;border:none;';" +
+                          "  }" +
+                          "}else{" +
+                          "  var c=document.querySelector('canvas');" +
+                          "  if(c){c.focus();}" +
+                          "}" +
+                          "}catch(e){}})();";
+                  view.evaluateJavascript(js, null);
+              }
+
+              private void forceCanvasFullscreen() {
+                  String js = "(function(){try{" +
+                          "var el=document.querySelector('canvas')||document.querySelector('iframe');" +
+                          "if(el){" +
+                          "  el.style.cssText='position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:999999;border:none;object-fit:contain;background:#000;';" +
+                          "  el.focus();" +
+                          "}" +
+                          "if(document.documentElement.requestFullscreen){document.documentElement.requestFullscreen().catch(function(){});}" +
+                          "}catch(e){}})();";
+                  webView.evaluateJavascript(js, null);
               }
 
               private Button createTopRightMenuOval() {
                   Button b = new Button(this);
+                  b.setFocusable(false);
+                  b.setFocusableInTouchMode(false);
                   b.setText("⚙");
                   b.setTextSize(16);
                   b.setTextColor(0xFFFF6B6B);
                   GradientDrawable bg = new GradientDrawable();
-                  bg.setColor(Color.argb(90, 15, 23, 42));
+                  bg.setColor(Color.argb(110, 15, 23, 42));
                   bg.setCornerRadius(dp(24));
                   bg.setStroke(dp(3), 0xFFFF6B6B);
                   b.setBackground(bg);
@@ -944,7 +1019,6 @@ jobs:
                   int h = rootLayout.getHeight();
                   if (w <= 0 || h <= 0) return;
 
-                  // Круглый джойстик справа (как на схеме)
                   joystickView = new VirtualJoystickView(this);
                   int joySize = dp(170);
                   FrameLayout.LayoutParams joyLp = new FrameLayout.LayoutParams(joySize, joySize);
@@ -954,10 +1028,11 @@ jobs:
                   joystickView.setJoystickListener(this::handleJoystick);
                   controlsOverlay.addView(joystickView, joyLp);
 
-                  // Все цветные кнопки (4 стандартные слева + добавленные пользователем)
                   int btnSize = dp(54);
                   for (final CustomButtonConfig cfg : buttons) {
                       Button btn = new Button(this);
+                      btn.setFocusable(false);
+                      btn.setFocusableInTouchMode(false);
                       btn.setText(cfg.keyLabel);
                       btn.setTextSize(11);
                       btn.setAllCaps(false);
@@ -1003,11 +1078,11 @@ jobs:
                                   return true;
                               }
 
-                              if (event.getAction() == MotionEvent.ACTION_DOWN) {
+                              if (event.getActionMasked() == MotionEvent.ACTION_DOWN) {
                                   v.setAlpha(0.6f);
                                   triggerConfigAction(cfg, true);
                                   return true;
-                              } else if (event.getAction() == MotionEvent.ACTION_UP || event.getAction() == MotionEvent.ACTION_CANCEL) {
+                              } else if (event.getActionMasked() == MotionEvent.ACTION_UP || event.getActionMasked() == MotionEvent.ACTION_CANCEL) {
                                   v.setAlpha(1.0f);
                                   triggerConfigAction(cfg, false);
                                   return true;
@@ -1020,15 +1095,35 @@ jobs:
               }
 
               private void triggerConfigAction(CustomButtonConfig cfg, boolean down) {
+                  if (!webView.hasFocus()) webView.requestFocus();
                   if (CustomButtonConfig.ACTION_MOUSE_LEFT.equals(cfg.actionType)) {
+                      dispatchNativeTap(down);
                       sendJsMouse(down ? "mousedown" : "mouseup", 0);
                       if (!down) sendJsMouse("click", 0);
                   } else if (CustomButtonConfig.ACTION_MOUSE_RIGHT.equals(cfg.actionType)) {
                       sendJsMouse(down ? "mousedown" : "mouseup", 2);
                       if (!down) sendJsMouse("contextmenu", 2);
                   } else {
+                      dispatchNativeKey(down, cfg.androidKeyCode);
                       sendJsKey(down ? "keydown" : "keyup", cfg.jsCode, cfg.keyCode, cfg.keyLabel);
                   }
+              }
+
+              private void dispatchNativeKey(boolean down, int androidKeyCode) {
+                  if (androidKeyCode <= 0) return;
+                  long now = SystemClock.uptimeMillis();
+                  int action = down ? KeyEvent.ACTION_DOWN : KeyEvent.ACTION_UP;
+                  webView.dispatchKeyEvent(new KeyEvent(now, now, action, androidKeyCode, 0));
+              }
+
+              private void dispatchNativeTap(boolean down) {
+                  long now = SystemClock.uptimeMillis();
+                  float cx = webView.getWidth() / 2f;
+                  float cy = webView.getHeight() / 2f;
+                  int action = down ? MotionEvent.ACTION_DOWN : MotionEvent.ACTION_UP;
+                  MotionEvent ev = MotionEvent.obtain(now, now, action, cx, cy, 0);
+                  webView.dispatchTouchEvent(ev);
+                  ev.recycle();
               }
 
               private void openColorOsControlMenu() {
@@ -1050,13 +1145,18 @@ jobs:
                   list.setOrientation(LinearLayout.VERTICAL);
                   sv.addView(list);
                   sheet.addView(sv, new LinearLayout.LayoutParams(
-                          LinearLayout.LayoutParams.MATCH_PARENT, dp(240)));
+                          LinearLayout.LayoutParams.MATCH_PARENT, dp(260)));
 
                   final AlertDialog dlg = new AlertDialog.Builder(this)
                           .setView(sheet)
                           .create();
 
-                  list.addView(makeMenuBtn("✏️ Заменить функцию кнопки", 0xFF00D296, 0xFF06120E, v -> {
+                  list.addView(makeMenuBtn("⛶ Развернуть игру на весь экран", 0xFF00D296, 0xFF06120E, v -> {
+                      forceCanvasFullscreen();
+                      dlg.dismiss();
+                  }));
+
+                  list.addView(makeMenuBtn("✏️ Заменить функцию кнопки", 0xFF38BDF8, 0xFF06121A, v -> {
                       dlg.dismiss();
                       openPickButtonToEditDialog();
                   }));
@@ -1133,7 +1233,7 @@ jobs:
                                       colorNames[idx] + " (доп)",
                                       colors[idx],
                                       CustomButtonConfig.ACTION_KEY,
-                                      "Y", "KeyY", 89,
+                                      "Y", "KeyY", 89, KeyEvent.KEYCODE_Y,
                                       0.32f, 0.58f, true
                               );
                               openAssignFunctionDialog(nb, true);
@@ -1186,6 +1286,13 @@ jobs:
                                   cfg.keyLabel = String.valueOf(ch);
                                   cfg.jsCode = (ch >= '0' && ch <= '9') ? ("Digit" + ch) : ("Key" + ch);
                                   cfg.keyCode = (int) ch;
+                                  if (ch >= 'A' && ch <= 'Z') {
+                                      cfg.androidKeyCode = KeyEvent.KEYCODE_A + (ch - 'A');
+                                  } else if (ch >= '0' && ch <= '9') {
+                                      cfg.androidKeyCode = KeyEvent.KEYCODE_0 + (ch - '0');
+                                  } else {
+                                      cfg.androidKeyCode = 0;
+                                  }
                                   if (isNew) buttons.add(cfg);
                                   saveButtons();
                                   renderControls();
@@ -1197,41 +1304,44 @@ jobs:
 
               private void applyPreset(CustomButtonConfig cfg, int idx) {
                   switch (idx) {
-                      case 0: setKey(cfg, "W", "KeyW", 87); break;
-                      case 1: setKey(cfg, "A", "KeyA", 65); break;
-                      case 2: setKey(cfg, "S", "KeyS", 83); break;
-                      case 3: setKey(cfg, "D", "KeyD", 68); break;
-                      case 4: setKey(cfg, "F", "KeyF", 70); break;
-                      case 5: setKey(cfg, "Y", "KeyY", 89); break;
-                      case 6: setKey(cfg, "E", "KeyE", 69); break;
-                      case 7: setKey(cfg, "R", "KeyR", 82); break;
-                      case 8: setKey(cfg, "C", "KeyC", 67); break;
-                      case 9: setKey(cfg, "H", "KeyH", 72); break;
-                      case 10: setKey(cfg, "SPACE", "Space", 32); break;
-                      case 11: setKey(cfg, "SHIFT", "ShiftLeft", 16); break;
-                      case 12: setKey(cfg, "CTRL", "ControlLeft", 17); break;
-                      case 13: setKey(cfg, "ESC", "Escape", 27); break;
-                      case 14: setKey(cfg, "ENTER", "Enter", 13); break;
+                      case 0: setKey(cfg, "W", "KeyW", 87, KeyEvent.KEYCODE_W); break;
+                      case 1: setKey(cfg, "A", "KeyA", 65, KeyEvent.KEYCODE_A); break;
+                      case 2: setKey(cfg, "S", "KeyS", 83, KeyEvent.KEYCODE_S); break;
+                      case 3: setKey(cfg, "D", "KeyD", 68, KeyEvent.KEYCODE_D); break;
+                      case 4: setKey(cfg, "F", "KeyF", 70, KeyEvent.KEYCODE_F); break;
+                      case 5: setKey(cfg, "Y", "KeyY", 89, KeyEvent.KEYCODE_Y); break;
+                      case 6: setKey(cfg, "E", "KeyE", 69, KeyEvent.KEYCODE_E); break;
+                      case 7: setKey(cfg, "R", "KeyR", 82, KeyEvent.KEYCODE_R); break;
+                      case 8: setKey(cfg, "C", "KeyC", 67, KeyEvent.KEYCODE_C); break;
+                      case 9: setKey(cfg, "H", "KeyH", 72, KeyEvent.KEYCODE_H); break;
+                      case 10: setKey(cfg, "SPACE", "Space", 32, KeyEvent.KEYCODE_SPACE); break;
+                      case 11: setKey(cfg, "SHIFT", "ShiftLeft", 16, KeyEvent.KEYCODE_SHIFT_LEFT); break;
+                      case 12: setKey(cfg, "CTRL", "ControlLeft", 17, KeyEvent.KEYCODE_CTRL_LEFT); break;
+                      case 13: setKey(cfg, "ESC", "Escape", 27, KeyEvent.KEYCODE_ESCAPE); break;
+                      case 14: setKey(cfg, "ENTER", "Enter", 13, KeyEvent.KEYCODE_ENTER); break;
                       case 15:
                           cfg.actionType = CustomButtonConfig.ACTION_MOUSE_LEFT;
                           cfg.keyLabel = "ЛКМ";
                           cfg.jsCode = "MouseLeft";
                           cfg.keyCode = 0;
+                          cfg.androidKeyCode = 0;
                           break;
                       case 16:
                           cfg.actionType = CustomButtonConfig.ACTION_MOUSE_RIGHT;
                           cfg.keyLabel = "ПКМ";
                           cfg.jsCode = "MouseRight";
                           cfg.keyCode = 2;
+                          cfg.androidKeyCode = 0;
                           break;
                   }
               }
 
-              private void setKey(CustomButtonConfig cfg, String label, String code, int keyCode) {
+              private void setKey(CustomButtonConfig cfg, String label, String code, int keyCode, int androidKeyCode) {
                   cfg.actionType = CustomButtonConfig.ACTION_KEY;
                   cfg.keyLabel = label;
                   cfg.jsCode = code;
                   cfg.keyCode = keyCode;
+                  cfg.androidKeyCode = androidKeyCode;
               }
 
               private void saveButtons() {
@@ -1257,35 +1367,49 @@ jobs:
               }
 
               private void handleJoystick(float x, float y) {
+                  if (!webView.hasFocus()) webView.requestFocus();
                   float threshold = 0.30f;
                   String upCode = arrowMode ? "ArrowUp" : "KeyW";
                   int upKey = arrowMode ? 38 : 87;
+                  int upAndroid = arrowMode ? KeyEvent.KEYCODE_DPAD_UP : KeyEvent.KEYCODE_W;
+
                   String downCode = arrowMode ? "ArrowDown" : "KeyS";
                   int downKey = arrowMode ? 40 : 83;
+                  int downAndroid = arrowMode ? KeyEvent.KEYCODE_DPAD_DOWN : KeyEvent.KEYCODE_S;
+
                   String leftCode = arrowMode ? "ArrowLeft" : "KeyA";
                   int leftKey = arrowMode ? 37 : 65;
+                  int leftAndroid = arrowMode ? KeyEvent.KEYCODE_DPAD_LEFT : KeyEvent.KEYCODE_A;
+
                   String rightCode = arrowMode ? "ArrowRight" : "KeyD";
                   int rightKey = arrowMode ? 39 : 68;
+                  int rightAndroid = arrowMode ? KeyEvent.KEYCODE_DPAD_RIGHT : KeyEvent.KEYCODE_D;
 
-                  updateKeyState(upCode, upKey, y < -threshold);
-                  updateKeyState(downCode, downKey, y > threshold);
-                  updateKeyState(leftCode, leftKey, x < -threshold);
-                  updateKeyState(rightCode, rightKey, x > threshold);
+                  updateKeyState(upCode, upKey, upAndroid, y < -threshold);
+                  updateKeyState(downCode, downKey, downAndroid, y > threshold);
+                  updateKeyState(leftCode, leftKey, leftAndroid, x < -threshold);
+                  updateKeyState(rightCode, rightKey, rightAndroid, x > threshold);
               }
 
-              private void updateKeyState(String code, int keyCode, boolean pressed) {
+              private void updateKeyState(String code, int keyCode, int androidKey, boolean pressed) {
                   boolean wasPressed = activeKeys.contains(code);
                   if (pressed && !wasPressed) {
                       activeKeys.add(code);
+                      activeAndroidKeys.put(code, androidKey);
+                      dispatchNativeKey(true, androidKey);
                       sendJsKey("keydown", code, keyCode, null);
                   } else if (!pressed && wasPressed) {
                       activeKeys.remove(code);
+                      Integer ak = activeAndroidKeys.remove(code);
+                      if (ak != null) dispatchNativeKey(false, ak);
                       sendJsKey("keyup", code, keyCode, null);
                   }
               }
 
               private void releaseAllDirections() {
                   for (String code : new HashSet<>(activeKeys)) {
+                      Integer ak = activeAndroidKeys.remove(code);
+                      if (ak != null) dispatchNativeKey(false, ak);
                       sendJsKey("keyup", code, 0, null);
                   }
                   activeKeys.clear();
@@ -1300,13 +1424,13 @@ jobs:
                   else if ("Enter".equals(code)) key = "Enter";
                   else if (customLabel != null && customLabel.length() == 1) key = customLabel;
 
-                  String js = "(function(){var e=new KeyboardEvent('" + type + "',{key:'" + key + "',code:'" + code + "',keyCode:" + keyCode + ",which:" + keyCode + ",bubbles:true,cancelable:true});document.dispatchEvent(e);window.dispatchEvent(e);var c=document.querySelector('canvas');if(c)c.dispatchEvent(e);})();";
+                  String js = "(function(){var c=document.querySelector('canvas');if(c&&c.focus)c.focus();var e=new KeyboardEvent('" + type + "',{key:'" + key + "',code:'" + code + "',keyCode:" + keyCode + ",which:" + keyCode + ",bubbles:true,cancelable:true,composed:true});document.dispatchEvent(e);window.dispatchEvent(e);if(c)c.dispatchEvent(e);})();";
                   webView.evaluateJavascript(js, null);
               }
 
               private void sendJsMouse(String type, int button) {
                   int buttonsMask = "mouseup".equals(type) ? 0 : (button == 2 ? 2 : 1);
-                  String js = "(function(){var t=document.querySelector('canvas')||document.elementFromPoint(window.innerWidth/2,window.innerHeight/2)||document;var e=new MouseEvent('" + type + "',{button:" + button + ",buttons:" + buttonsMask + ",clientX:window.innerWidth/2,clientY:window.innerHeight/2,bubbles:true,cancelable:true});t.dispatchEvent(e);})();";
+                  String js = "(function(){var t=document.querySelector('canvas')||document.elementFromPoint(window.innerWidth/2,window.innerHeight/2)||document;var e=new MouseEvent('" + type + "',{button:" + button + ",buttons:" + buttonsMask + ",clientX:window.innerWidth/2,clientY:window.innerHeight/2,bubbles:true,cancelable:true,composed:true});t.dispatchEvent(e);})();";
                   webView.evaluateJavascript(js, null);
               }
 

@@ -1,0 +1,598 @@
+name: Build GTA PORTS LAUNCHER APK
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Install Cordova
+        run: npm install -g cordova@12
+
+      - name: Create Cordova project
+        run: |
+          rm -rf build foxplugin
+          cordova create build com.foxai.gtaports "GTA PORTS LAUNCHER"
+          rm -rf build/www
+          mkdir -p build/www foxplugin/www foxplugin/src/android
+
+      - name: Write config, icon and native plugin
+        run: |
+          cat > build/config.xml <<'FOX_CFG'
+          <?xml version='1.0' encoding='utf-8'?>
+          <widget id="com.foxai.gtaports" version="2.0.0" xmlns="http://www.w3.org/ns/widgets" xmlns:cdv="http://cordova.apache.org/ns/1.0">
+              <name>GTA PORTS LAUNCHER</name>
+              <description>Fan edition launcher for the whole GTA series + built-in joystick game.</description>
+              <author href="https://github.com" email="fox@foxai.app">FoxAI</author>
+              <content src="index.html" />
+              <access origin="*" />
+              <allow-intent href="http://*/*" />
+              <allow-intent href="https://*/*" />
+              <allow-intent href="market:*" />
+              <allow-intent href="intent:*" />
+              <preference name="Orientation" value="portrait" />
+              <preference name="BackgroundColor" value="0xff0b0620" />
+              <preference name="android-minSdkVersion" value="24" />
+              <preference name="android-targetSdkVersion" value="34" />
+              <preference name="AndroidWindowSplashScreenBackground" value="#0b0620" />
+              <preference name="AndroidLaunchMode" value="singleTask" />
+              <platform name="android">
+                  <icon src="icon.png" />
+              </platform>
+          </widget>
+          FOX_CFG
+          cat > icon.svg <<'FOX_ICON'
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+            <defs>
+              <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2b0a4e"/><stop offset="1" stop-color="#0b0620"/></linearGradient>
+              <linearGradient id="sun" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffd23d"/><stop offset="1" stop-color="#ff2e88"/></linearGradient>
+            </defs>
+            <rect width="512" height="512" rx="104" fill="url(#bg)"/>
+            <circle cx="256" cy="210" r="150" fill="url(#sun)"/>
+            <g fill="#150936"><rect x="90" y="230" width="332" height="10"/><rect x="90" y="258" width="332" height="14"/><rect x="90" y="290" width="332" height="18"/><rect x="90" y="326" width="332" height="24"/></g>
+            <g stroke="#00e5ff" stroke-opacity="0.5" stroke-width="4"><line x1="60" y1="400" x2="452" y2="400"/><line x1="40" y1="440" x2="472" y2="440"/><line x1="256" y1="370" x2="120" y2="480"/><line x1="256" y1="370" x2="392" y2="480"/><line x1="256" y1="370" x2="256" y2="480"/></g>
+            <path d="M136 118 L226 178 L286 178 L376 118 L362 262 L256 402 L150 262 Z" fill="#ff9a3d" stroke="#0b0620" stroke-width="10"/>
+            <path d="M136 118 L226 178 L182 224 Z" fill="#ff2e88"/><path d="M376 118 L286 178 L330 224 Z" fill="#ff2e88"/>
+            <path d="M182 268 L256 402 L330 268 L256 316 Z" fill="#ffffff"/>
+            <circle cx="212" cy="242" r="17" fill="#0b0620"/><circle cx="300" cy="242" r="17" fill="#0b0620"/>
+            <path d="M240 330 L272 330 L256 356 Z" fill="#0b0620"/>
+          </svg>
+          FOX_ICON
+          cat > foxplugin/plugin.xml <<'FOX_PLUGIN'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <plugin xmlns="http://apache.org/cordova/ns/plugins/1.0" id="cordova-plugin-foxlaunch" version="1.0.0">
+              <name>FoxLaunch</name>
+              <description>Launch installed apps and open Play Store.</description>
+              <js-module src="www/foxlaunch.js" name="FoxLaunch"><clobbers target="FoxLaunch" /></js-module>
+              <platform name="android">
+                  <config-file target="res/xml/config.xml" parent="/*">
+                      <feature name="FoxLaunch"><param name="android-package" value="com.foxai.foxlaunch.FoxLaunch" /></feature>
+                  </config-file>
+                  <config-file target="AndroidManifest.xml" parent="/*">
+                      <queries>
+                          <intent><action android:name="android.intent.action.MAIN" /><category android:name="android.intent.category.LAUNCHER" /></intent>
+                          <package android:name="com.retroarch" />
+                          <package android:name="org.ppsspp.ppsspp" />
+                          <package android:name="me.magnum.melonds" />
+                          <package android:name="com.winlator" />
+                          <package android:name="com.rockstargames.gta3" />
+                          <package android:name="com.rockstargames.gtavc" />
+                          <package android:name="com.rockstargames.gtasa" />
+                      </queries>
+                  </config-file>
+                  <source-file src="src/android/FoxLaunch.java" target-dir="src/com/foxai/foxlaunch" />
+              </platform>
+          </plugin>
+          FOX_PLUGIN
+          cat > foxplugin/www/foxlaunch.js <<'FOX_JS'
+          var exec = require('cordova/exec');
+          module.exports = {
+              isInstalled: function (pkg, ok, fail) { exec(ok, fail, 'FoxLaunch', 'isInstalled', [pkg]); },
+              launch:      function (pkg, ok, fail) { exec(ok, fail, 'FoxLaunch', 'launch', [pkg]); },
+              openStore:   function (pkg, ok, fail) { exec(ok, fail, 'FoxLaunch', 'openStore', [pkg]); }
+          };
+          FOX_JS
+          cat > foxplugin/src/android/FoxLaunch.java <<'FOX_JAVA'
+          package com.foxai.foxlaunch;
+          import android.content.Context;
+          import android.content.Intent;
+          import android.content.pm.PackageManager;
+          import android.net.Uri;
+          import org.apache.cordova.CallbackContext;
+          import org.apache.cordova.CordovaPlugin;
+          import org.json.JSONArray;
+          import org.json.JSONException;
+          public class FoxLaunch extends CordovaPlugin {
+              @Override
+              public boolean execute(String action, JSONArray args, CallbackContext cb) throws JSONException {
+                  String pkg = args.getString(0);
+                  Context ctx = cordova.getActivity().getApplicationContext();
+                  PackageManager pm = ctx.getPackageManager();
+                  if (action.equals("isInstalled")) {
+                      boolean installed = false;
+                      try { pm.getPackageInfo(pkg, 0); installed = true; } catch (Exception e) { }
+                      cb.success(installed ? 1 : 0);
+                      return true;
+                  }
+                  if (action.equals("launch")) {
+                      Intent i = pm.getLaunchIntentForPackage(pkg);
+                      if (i == null) { cb.error("not_installed"); return true; }
+                      i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                      ctx.startActivity(i);
+                      cb.success();
+                      return true;
+                  }
+                  if (action.equals("openStore")) {
+                      try {
+                          Intent i = new Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=" + pkg));
+                          i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                          ctx.startActivity(i);
+                      } catch (Exception e) {
+                          Intent i = new Intent(Intent.ACTION_VIEW, Uri.parse("https://play.google.com/store/apps/details?id=" + pkg));
+                          i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                          ctx.startActivity(i);
+                      }
+                      cb.success();
+                      return true;
+                  }
+                  return false;
+              }
+          }
+          FOX_JAVA
+
+      - name: Write www/index.html (full app)
+        run: |
+          cat > build/www/index.html <<'FOX_HTML'
+          <!DOCTYPE html>
+          <html lang="ru">
+          <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+          <meta name="theme-color" content="#0b0620">
+          <title>GTA PORTS LAUNCHER</title>
+          <link rel="preconnect" href="https://fonts.googleapis.com">
+          <link href="https://fonts.googleapis.com/css2?family=Russo+One&family=Manrope:wght@400;600;800&display=swap" rel="stylesheet">
+          <style>
+          :root{--bg:#0b0620;--bg2:#140a2e;--surface:#1a1038;--surface2:#241650;--ink:#f4eeff;--muted:#9d8fc7;--magenta:#ff2e88;--cyan:#00e5ff;--violet:#7b2fff;--amber:#ff9a3d;--acid:#a3ff3d;--gold:#ffd23d;--red:#ff4d5e;--blue:#3d7bff;--ok:#3dff9a;--warn:#ffd23d;--bad:#ff4d5e;--info:#00e5ff}
+          *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+          html{scrollbar-color:var(--magenta) var(--bg2);scrollbar-width:thin}
+          body{background:var(--bg);color:var(--ink);font-family:Manrope,system-ui,sans-serif;font-size:15px;line-height:1.5;overflow-x:hidden;touch-action:manipulation}
+          body.lock{overflow:hidden}
+          ::selection{background:var(--magenta);color:#fff}
+          ::-webkit-scrollbar{width:10px;height:8px}
+          ::-webkit-scrollbar-track{background:var(--bg2)}
+          ::-webkit-scrollbar-thumb{background:linear-gradient(180deg,var(--magenta),var(--violet),var(--cyan));border-radius:8px;border:2px solid var(--bg2)}
+          ::-webkit-scrollbar-thumb:hover{background:linear-gradient(180deg,var(--cyan),var(--magenta))}
+          button{font-family:inherit;color:inherit;background:none;border:none;cursor:pointer}
+          input,select{font-family:inherit}
+          :focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
+          h1,h2,h3{font-family:"Russo One",Manrope,sans-serif;font-weight:400}
+          .aurora{position:fixed;border-radius:50%;filter:blur(90px);pointer-events:none;z-index:0;opacity:.5}
+          .a1{width:340px;height:340px;background:var(--magenta);top:-120px;left:-100px;animation:drift1 18s ease-in-out infinite alternate}
+          .a2{width:300px;height:300px;background:var(--violet);top:30%;right:-140px;animation:drift2 22s ease-in-out infinite alternate}
+          .a3{width:260px;height:260px;background:var(--cyan);bottom:-100px;left:20%;opacity:.3;animation:drift1 26s ease-in-out infinite alternate-reverse}
+          @keyframes drift1{to{transform:translate(70px,60px) scale(1.15)}}
+          @keyframes drift2{to{transform:translate(-60px,-70px) scale(.9)}}
+          #grain{position:fixed;inset:0;z-index:1;pointer-events:none;opacity:.06;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)' opacity='0.55'/%3E%3C/svg%3E")}
+          #topbar{position:fixed;top:0;left:0;right:0;z-index:120;background:rgba(11,6,32,.82);backdrop-filter:blur(14px);border-bottom:1px solid rgba(123,47,255,.35)}
+          .hwrap{max-width:760px;margin:0 auto;height:62px;display:flex;align-items:center;justify-content:space-between;padding:0 16px}
+          .logo{display:flex;align-items:center;gap:10px}
+          .logo svg{width:36px;height:36px;filter:drop-shadow(0 0 8px rgba(255,154,61,.6))}
+          .logo b{font-family:"Russo One";font-size:15px;letter-spacing:1px;display:block;line-height:1.1}
+          .logo span{font-size:9px;letter-spacing:3px;color:var(--muted);font-weight:800}
+          #soundBtn{width:42px;height:42px;border-radius:50%;background:var(--surface);border:1px solid rgba(0,229,255,.4);color:var(--cyan);display:flex;align-items:center;justify-content:center;transition:.2s}
+          #soundBtn svg{width:20px;height:20px}
+          #soundBtn .ic-off{display:none}
+          #soundBtn.muted{border-color:rgba(255,77,94,.5);color:var(--muted)}
+          #soundBtn.muted .ic-on{display:none}
+          #soundBtn.muted .ic-off{display:block}
+          main{position:relative;z-index:2;max-width:760px;margin:0 auto;padding:78px 16px 110px}
+          .view{display:none}
+          .view.active{display:block;animation:viewIn .35s ease}
+          @keyframes viewIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+          .reveal{opacity:0;transform:translateY(18px);transition:opacity .6s,transform .6s}
+          .reveal.in{opacity:1;transform:none}
+          .sec-title{font-size:18px;letter-spacing:1px;margin:28px 0 14px;position:relative;padding-bottom:8px}
+          .sec-title::after{content:"";position:absolute;left:0;bottom:0;width:46px;height:3px;border-radius:2px;background:linear-gradient(90deg,var(--magenta),var(--cyan))}
+          .hero{position:relative;overflow:hidden;border-radius:24px;border:1px solid rgba(123,47,255,.4);background:linear-gradient(180deg,#150936,#2b0a4e 60%,#0b0620);padding:26px 22px 96px}
+          .hero-sun{position:absolute;top:-34px;right:-34px;width:210px;height:210px;animation:sunPulse 5s ease-in-out infinite}
+          @keyframes sunPulse{0%,100%{filter:drop-shadow(0 0 24px rgba(255,46,136,.5))}50%{filter:drop-shadow(0 0 44px rgba(255,210,61,.7))}}
+          .hero-grid{position:absolute;left:-10%;right:-10%;bottom:0;height:46%;background:repeating-linear-gradient(90deg,rgba(255,46,136,.4) 0 2px,transparent 2px 56px),repeating-linear-gradient(0deg,rgba(0,229,255,.35) 0 2px,transparent 2px 38px);transform:perspective(300px) rotateX(55deg);transform-origin:top;animation:gridMove 2.6s linear infinite}
+          @keyframes gridMove{to{background-position:0 0,0 38px}}
+          .palm{position:absolute;bottom:38px;font-size:46px;z-index:1}
+          .palm.l{left:10px}.palm.r{right:14px;font-size:58px;transform:scaleX(-1)}
+          .hero-in{position:relative;z-index:2}
+          .hero-chip{display:inline-block;font-size:10px;font-weight:800;letter-spacing:2px;color:var(--acid);border:1px solid rgba(163,255,61,.45);background:rgba(163,255,61,.1);padding:5px 12px;border-radius:999px;margin-bottom:12px}
+          .hero h1{font-size:clamp(26px,7.5vw,40px);line-height:1.12;background:linear-gradient(90deg,#fff,var(--cyan) 55%,var(--magenta));-webkit-background-clip:text;background-clip:text;color:transparent}
+          .hero p{color:var(--muted);font-size:13px;margin-top:10px;max-width:440px}
+          .hero-stats{display:flex;gap:10px;margin-top:18px;flex-wrap:wrap}
+          .stat{background:rgba(11,6,32,.6);border:1px solid rgba(123,47,255,.35);border-radius:14px;padding:9px 14px}
+          .stat b{font-family:"Russo One";font-size:19px;display:block;line-height:1.1}
+          .stat:nth-child(1) b{color:var(--cyan)}.stat:nth-child(2) b{color:var(--ok)}.stat:nth-child(3) b{color:var(--amber)}
+          .stat span{font-size:9px;letter-spacing:1.5px;color:var(--muted);font-weight:800;text-transform:uppercase}
+          .hero-cta{margin-top:16px}
+          .rule{margin-top:14px;border:1px solid rgba(163,255,61,.4);background:rgba(163,255,61,.07);border-radius:16px;padding:14px 16px;font-size:12.5px}
+          .rule b{color:var(--acid)}
+          .ticker{margin-top:14px;overflow:hidden;border-top:1px solid rgba(0,229,255,.25);border-bottom:1px solid rgba(0,229,255,.25);padding:8px 0;background:rgba(20,10,46,.5)}
+          .ticker-track{display:inline-flex;white-space:nowrap;width:max-content;animation:tick 28s linear infinite}
+          .ticker-track span{font-size:11px;font-weight:800;letter-spacing:1.5px;color:var(--cyan);padding-right:48px}
+          @keyframes tick{to{transform:translateX(-50%)}}
+          .timeline{display:flex;overflow-x:auto;padding:18px 4px 10px}
+          .tl-item{flex:none;width:86px;display:flex;flex-direction:column;align-items:center;gap:5px;position:relative;padding-top:14px}
+          .tl-item::before{content:"";position:absolute;top:24px;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--violet),var(--cyan))}
+          .tl-item:first-child::before{left:50%}.tl-item:last-child::before{right:50%}
+          .tl-emoji{font-size:20px;position:relative;z-index:1}
+          .tl-dot{width:14px;height:14px;border-radius:50%;background:var(--h);border:2px solid #0b0620;box-shadow:0 0 10px var(--h);position:relative;z-index:1}
+          .tl-year{font-family:"Russo One";font-size:11px}
+          .tl-short{font-size:8.5px;font-weight:800;color:var(--muted);text-align:center;line-height:1.2}
+          .controls{margin-top:16px}
+          .searchrow{display:flex;gap:10px}
+          #searchInp{flex:1;min-width:0;background:var(--surface);border:1px solid var(--surface2);border-radius:12px;padding:12px 14px;color:var(--ink);font-size:14px}
+          #searchInp:focus{border-color:var(--cyan);box-shadow:0 0 16px rgba(0,229,255,.25);outline:none}
+          #sortSel{background:var(--surface);border:1px solid var(--surface2);border-radius:12px;padding:0 28px 0 10px;color:var(--ink);font-size:12px;font-weight:600;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%2300e5ff' stroke-width='2' fill='none'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center}
+          .chips{display:flex;gap:8px;overflow-x:auto;padding:12px 2px 4px;scrollbar-width:none}
+          .chips::-webkit-scrollbar{display:none}
+          .chip{flex:none;padding:8px 15px;border-radius:999px;border:1px solid var(--surface2);background:var(--surface);font-size:12px;font-weight:800;color:var(--muted)}
+          .chip.on{background:linear-gradient(135deg,var(--magenta),var(--violet));border-color:transparent;color:#fff;box-shadow:0 4px 18px rgba(255,46,136,.4)}
+          #resCount{font-size:12px;color:var(--muted);margin:8px 2px 12px}
+          #grid,#favGrid{display:grid;grid-template-columns:1fr;gap:16px}
+          @media(min-width:680px){#grid,#favGrid{grid-template-columns:1fr 1fr}}
+          .card{background:linear-gradient(180deg,var(--surface),var(--bg2));border:1px solid var(--hSoft);border-radius:20px;overflow:hidden;cursor:pointer;transition:transform .25s,box-shadow .25s,border-color .25s}
+          .card:hover{transform:translateY(-4px);border-color:var(--h);box-shadow:0 12px 34px var(--hGlow)}
+          .card.flash{animation:flash 1.5s ease}
+          @keyframes flash{0%,100%{box-shadow:none}25%,65%{box-shadow:0 0 0 3px var(--cyan),0 0 44px rgba(0,229,255,.6)}}
+          .cover{position:relative;padding-top:52%;overflow:hidden;background:#0d0620}
+          .cover svg{position:absolute;inset:0;width:100%;height:100%;display:block}
+          .badge-type{position:absolute;top:10px;left:10px;font-size:9px;font-weight:800;letter-spacing:1px;color:var(--tc);background:rgba(11,6,32,.82);border:1px solid var(--tc);padding:4px 9px;border-radius:999px}
+          .feathers{position:absolute;top:10px;right:10px;font-size:10px;background:rgba(11,6,32,.85);border:1px solid rgba(163,255,61,.5);padding:4px 8px;border-radius:10px}
+          .badge-inst{position:absolute;bottom:10px;left:10px;font-size:9px;font-weight:800;color:#062d18;background:linear-gradient(90deg,var(--ok),var(--cyan));padding:4px 10px;border-radius:999px}
+          .cbody{padding:14px 16px 16px}
+          .ctitle{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+          .ctitle h3{font-size:16px;line-height:1.25}
+          .heart{flex:none;width:38px;height:38px;border-radius:12px;background:var(--surface2);display:flex;align-items:center;justify-content:center;color:var(--muted)}
+          .heart svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2}
+          .heart.on{color:var(--magenta);background:rgba(255,46,136,.15)}
+          .heart.on svg{fill:var(--magenta)}
+          .meta{display:flex;flex-wrap:wrap;gap:6px;margin:9px 0}
+          .meta span{font-size:10.5px;font-weight:600;color:var(--muted);border:1px solid var(--surface2);border-radius:8px;padding:3px 8px}
+          .meta .tag{color:var(--h);border-color:var(--hSoft);background:var(--hSoft);font-weight:800}
+          .cdesc{font-size:12.5px;color:var(--muted);display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+          .actions{display:flex;gap:8px;margin-top:13px;flex-wrap:wrap}
+          .btn{min-height:44px;padding:10px 16px;border-radius:12px;font-size:13px;font-weight:800;display:inline-flex;align-items:center;justify-content:center;gap:6px;transition:.18s}
+          .btn:active{transform:scale(.95)}
+          .btn-primary{background:linear-gradient(135deg,var(--magenta),var(--violet));color:#fff;box-shadow:0 6px 22px rgba(255,46,136,.35)}
+          .btn-play{background:linear-gradient(135deg,var(--amber),var(--magenta));color:#fff;box-shadow:0 6px 22px rgba(255,154,61,.4)}
+          .btn-ghost{background:var(--surface2);border:1px solid rgba(0,229,255,.25)}
+          .btn-cyan{background:linear-gradient(135deg,var(--cyan),var(--blue));color:#04122a}
+          .btn-icon{width:44px;padding:0;background:var(--surface2);color:var(--cyan);font-size:17px}
+          .empty{grid-column:1/-1;text-align:center;padding:44px 20px;color:var(--muted);font-size:13px}
+          .empty b{display:block;font-size:44px;margin-bottom:10px}
+          .anti{display:grid;gap:12px}
+          .anti-card{border:1px dashed rgba(255,210,61,.55);background:rgba(255,210,61,.06);border-radius:16px;padding:16px}
+          .anti-card h3{font-size:14px;color:var(--warn);margin-bottom:6px}
+          .anti-card p{font-size:12.5px;color:var(--muted)}
+          .anti-chip{display:inline-block;margin-top:10px;font-size:9px;font-weight:800;color:var(--bad);background:rgba(255,77,94,.12);border:1px solid rgba(255,77,94,.4);padding:4px 10px;border-radius:999px}
+          .steps{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+          .step{background:var(--surface);border:1px solid var(--surface2);border-radius:16px;padding:14px 12px;text-align:center}
+          .step i{font-style:normal;font-family:"Russo One";width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,var(--cyan),var(--violet));color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:14px;margin-bottom:8px}
+          .step b{display:block;font-size:12px;margin-bottom:4px}
+          .step p{font-size:10.5px;color:var(--muted)}
+          footer{text-align:center;color:var(--muted);font-size:11px;padding:34px 0 6px;line-height:1.7}
+          .game-poster{border-radius:20px;overflow:hidden;border:1px solid rgba(0,229,255,.4)}
+          .game-desc{font-size:13px;color:var(--muted);margin:14px 2px}
+          .bestrow{display:flex;gap:10px;margin:14px 0}
+          .runs{display:grid;gap:8px;margin-top:12px}
+          .run{display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--surface2);border-radius:14px;padding:10px 14px;font-size:12px}
+          .run b{font-family:"Russo One";font-size:15px;color:var(--cyan);margin-left:auto}
+          .run .rd{color:var(--muted);font-size:10.5px}
+          .note{font-size:11.5px;color:var(--muted);border-left:3px solid var(--violet);background:rgba(123,47,255,.08);padding:10px 12px;border-radius:0 12px 12px 0;margin-top:16px}
+          #bottomnav{position:fixed;bottom:0;left:0;right:0;z-index:100;background:rgba(11,6,32,.9);backdrop-filter:blur(14px);border-top:1px solid rgba(123,47,255,.35);padding:6px 8px calc(6px + env(safe-area-inset-bottom))}
+          .nav-in{max-width:520px;margin:0 auto;display:flex;justify-content:space-around}
+          .navbtn{position:relative;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:10px;font-weight:800;color:var(--muted);padding:7px 20px;border-radius:14px}
+          .navbtn svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:2}
+          .navbtn.on{color:var(--cyan);background:rgba(0,229,255,.09)}
+          #favBadge{position:absolute;top:2px;right:10px;background:var(--magenta);color:#fff;font-size:9px;min-width:16px;height:16px;border-radius:999px;display:flex;align-items:center;justify-content:center;padding:0 4px}
+          #sheet{position:fixed;inset:0;z-index:150;display:none}
+          #sheet.open{display:block}
+          .scrim{position:absolute;inset:0;background:rgba(5,2,15,.72)}
+          .panel{position:absolute;left:50%;bottom:0;transform:translateX(-50%);width:min(100%,640px);max-height:90vh;background:linear-gradient(180deg,var(--surface),var(--bg));border:1px solid rgba(255,46,136,.4);border-radius:24px 24px 0 0;display:flex;flex-direction:column;animation:slideUp .3s ease}
+          @keyframes slideUp{from{transform:translate(-50%,60px);opacity:0}}
+          .s-close{position:absolute;top:12px;right:12px;z-index:5;width:38px;height:38px;border-radius:50%;background:rgba(11,6,32,.8);border:1px solid var(--surface2)}
+          .s-scroll{overflow-y:auto;padding:0 18px 18px}
+          .s-cover{position:relative;margin:0 -18px 14px;padding-top:50%;overflow:hidden}
+          .s-cover svg{position:absolute;inset:0;width:100%;height:100%}
+          .s-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
+          .s-head h2{font-size:20px}
+          .s-sub{font-size:11px;color:var(--muted);margin-top:4px}
+          .lightbox{flex:none;text-align:center;background:var(--surface);border:1px solid rgba(163,255,61,.4);border-radius:14px;padding:8px 12px}
+          .lightbox b{font-family:"Russo One";font-size:16px;color:var(--acid);display:block}
+          .lightbox span{font-size:8.5px;color:var(--muted);font-weight:800}
+          .s-meta{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:14px 0}
+          .s-meta div{background:var(--surface);border:1px solid var(--surface2);border-radius:12px;padding:9px 12px}
+          .s-meta span{display:block;font-size:9px;color:var(--muted);font-weight:800;text-transform:uppercase}
+          .s-meta b{font-size:12px}
+          .s-need,.s-fan{padding:12px 14px;border-radius:0 12px 12px 0;margin-bottom:14px;font-size:12.5px}
+          .s-need{border-left:3px solid var(--cyan);background:rgba(0,229,255,.07)}
+          .s-fan{border-left:3px solid var(--amber);background:rgba(255,154,61,.08);color:var(--muted)}
+          .s-need span,.s-fan span{font-size:9px;font-weight:800;display:block;margin-bottom:4px}
+          .s-need span{color:var(--cyan)}.s-fan span{color:var(--amber)}
+          .s-how h4{font-size:12px;margin-bottom:6px}
+          .s-how ol{padding-left:18px;font-size:12.5px;color:var(--muted)}
+          .s-how li{margin:5px 0}
+          .s-links{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0 4px}
+          .s-links .btn{flex:1;font-size:12px}
+          .s-actions{position:sticky;bottom:0;display:flex;gap:10px;padding:14px 0 4px;background:linear-gradient(transparent,var(--bg) 35%)}
+          .s-actions .btn{flex:1}
+          .heart.big{width:48px;height:48px}
+          #gameOverlay{position:fixed;inset:0;z-index:200;background:var(--bg);display:none}
+          #gameOverlay.open{display:block}
+          #gameCanvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none}
+          .scanlines{position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(0deg,rgba(0,0,0,.14) 0 2px,transparent 2px 4px);opacity:.35}
+          .vignette{position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse at center,transparent 52%,rgba(5,2,15,.6))}
+          #hud{position:absolute;top:0;left:0;right:0;padding:calc(10px + env(safe-area-inset-top)) 12px 0;display:flex;justify-content:space-between;opacity:0;pointer-events:none}
+          #gameOverlay.play #hud{opacity:1;pointer-events:auto}
+          .hbtn{width:42px;height:42px;border-radius:50%;background:rgba(20,10,46,.85);border:1px solid rgba(0,229,255,.4);color:var(--cyan);font-size:16px}
+          .hud-center{text-align:center}
+          #hCash{font-family:"Russo One";font-size:18px;color:var(--ok)}
+          #hTime{font-family:"Russo One";font-size:14px;color:var(--cyan)}
+          #hTime.low{color:var(--bad);animation:blink 1s infinite}
+          @keyframes blink{50%{opacity:.35}}
+          .hpwrap{width:150px;height:8px;background:var(--surface2);border-radius:99px;margin:7px auto 0;overflow:hidden}
+          #hpFill{height:100%;width:100%;background:linear-gradient(90deg,var(--ok),var(--cyan))}
+          #hpFill.low{background:linear-gradient(90deg,var(--bad),var(--warn))}
+          #hStars{color:var(--gold);font-size:14px}
+          #mm{position:absolute;top:calc(96px + env(safe-area-inset-top));right:12px;width:110px;height:110px;border:1px solid rgba(0,229,255,.45);border-radius:12px;opacity:0}
+          #gameOverlay.play #mm{opacity:.92}
+          #joyZone{position:absolute;left:0;bottom:0;width:58%;height:46%;touch-action:none;opacity:0;pointer-events:none}
+          #gameOverlay.play #joyZone{opacity:1;pointer-events:auto}
+          #joyBase{position:absolute;left:26px;bottom:26px;width:116px;height:116px;border-radius:50%;border:2px solid rgba(0,229,255,.5);background:radial-gradient(circle,rgba(0,229,255,.14),rgba(0,229,255,.03))}
+          #joyBase.active{border-color:var(--cyan);box-shadow:0 0 26px rgba(0,229,255,.45)}
+          #joyThumb{position:absolute;left:50%;top:50%;width:52px;height:52px;margin:-26px 0 0 -26px;border-radius:50%;background:linear-gradient(135deg,var(--cyan),var(--violet));transition:transform .12s}
+          #joyBase.active #joyThumb{transition:none}
+          #nitroBtn{position:absolute;right:22px;bottom:34px;width:92px;height:92px;border-radius:50%;border:2px solid rgba(0,229,255,.5);display:flex;align-items:center;justify-content:center;touch-action:none;opacity:0;pointer-events:none}
+          #gameOverlay.play #nitroBtn{opacity:1;pointer-events:auto}
+          .nlabel{width:74px;height:74px;border-radius:50%;background:rgba(11,6,32,.94);display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:"Russo One";font-size:11px;color:var(--cyan)}
+          .gpanel{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(5,2,15,.55);opacity:0;pointer-events:none;overflow-y:auto}
+          .gpanel.show{opacity:1;pointer-events:auto}
+          .gcard{width:min(100%,420px);background:linear-gradient(180deg,var(--surface),var(--bg2));border:1px solid rgba(255,46,136,.45);border-radius:22px;padding:24px 22px;text-align:center}
+          .gcard h2{font-size:26px;background:linear-gradient(90deg,var(--cyan),var(--magenta));-webkit-background-clip:text;background-clip:text;color:transparent}
+          .gsub{font-size:12.5px;color:var(--muted);margin-top:8px}
+          #diffRow{display:flex;gap:8px;justify-content:center;margin:16px 0 6px}
+          .diffchip{padding:10px 15px;border-radius:12px;border:1px solid var(--surface2);background:var(--surface);font-family:"Russo One";font-size:12px;color:var(--muted)}
+          .diffchip.on{border-color:var(--cyan);color:var(--cyan)}
+          #diffInfo{font-size:12px;color:var(--muted)}
+          #vibroBtn{margin:12px auto 0;display:block;padding:9px 16px;border-radius:12px;background:var(--surface2);font-size:12px;font-weight:800;color:var(--muted)}
+          #vibroBtn.on{color:var(--ok)}
+          .bigbtn{width:100%;margin-top:16px;padding:16px;font-family:"Russo One";font-size:16px}
+          .ghint{font-size:11px;color:var(--muted);margin-top:14px;line-height:1.6}
+          #endTitle.win{color:var(--ok);background:none}
+          #endTitle.lose{color:var(--bad);background:none}
+          #endRecord{display:none;width:max-content;margin:10px auto 0;background:rgba(255,210,61,.14);border:1px solid rgba(255,210,61,.5);color:var(--gold);font-size:12px;font-weight:800;padding:6px 14px;border-radius:999px}
+          #endStats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:16px 0 4px}
+          #endStats div{background:var(--surface);border-radius:12px;padding:10px 6px}
+          #endStats span{display:block;font-size:9px;color:var(--muted);font-weight:800}
+          #endStats b{font-family:"Russo One";font-size:17px;color:var(--cyan)}
+          .endrow{display:flex;gap:10px;margin-top:14px}
+          .endrow .btn{flex:1}
+          #toasts{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(92px + env(safe-area-inset-bottom));z-index:300;width:min(92%,420px);display:flex;flex-direction:column;gap:8px;pointer-events:none}
+          .toast{background:rgba(20,10,46,.96);border:1px solid var(--surface2);border-left:3px solid var(--info);border-radius:14px;padding:12px 14px;font-size:13px;display:flex;gap:10px;animation:toastIn .3s ease}
+          .toast.ok{border-left-color:var(--ok)}.toast.warn{border-left-color:var(--warn)}
+          @keyframes toastIn{from{opacity:0;transform:translateY(14px)}}
+          </style>
+          </head>
+          <body>
+          <div class="aurora a1"></div><div class="aurora a2"></div><div class="aurora a3"></div><div id="grain"></div>
+          <header id="topbar"><div class="hwrap">
+            <div class="logo"><svg viewBox="0 0 48 48"><path d="M8 6 L20 14 L28 14 L40 6 L38 22 L24 42 L10 22 Z" fill="#ff9a3d"/><path d="M8 6 L20 14 L14 20 Z" fill="#ff2e88"/><path d="M40 6 L28 14 L34 20 Z" fill="#ff2e88"/><path d="M14 24 L24 42 L34 24 L24 30 Z" fill="#fff"/><circle cx="18" cy="21" r="2.4" fill="#0b0620"/><circle cx="30" cy="21" r="2.4" fill="#0b0620"/></svg><div><b>GTA PORTS</b><span>LAUNCHER • FAN EDITION</span></div></div>
+            <button id="soundBtn" data-act="sound" aria-label="Звук"><svg class="ic-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 9v6h4l5 4V5L8 9H4z" fill="currentColor" stroke="none"/><path d="M16 9a4 4 0 0 1 0 6"/></svg><svg class="ic-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 9v6h4l5 4V5L8 9H4z" fill="currentColor" stroke="none"/><path d="M16 9l5 6M21 9l-5 6"/></svg></button>
+          </div></header>
+          <main>
+            <section id="view-catalog" class="view active">
+              <div class="hero reveal">
+                <svg class="hero-sun" viewBox="0 0 200 200"><defs><linearGradient id="hsun" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffd23d"/><stop offset="1" stop-color="#ff2e88"/></linearGradient></defs><circle cx="100" cy="100" r="80" fill="url(#hsun)"/><g fill="#150936"><rect x="10" y="112" width="180" height="5"/><rect x="10" y="126" width="180" height="7"/><rect x="10" y="142" width="180" height="9"/><rect x="10" y="160" width="180" height="12"/></g></svg>
+                <div class="hero-grid"></div><span class="palm l">🌴</span><span class="palm r">🌴</span>
+                <div class="hero-in">
+                  <span class="hero-chip">🦊 FAN EDITION • ЛЁГКИЕ ПУТИ</span>
+                  <h1>ПОРТЫ НА ВСЮ<br>СЕРИЮ GTA</h1>
+                  <p>13 из 13 игр: от GTA 1997 до GTA V. Лёгкие эмуляторы и открытые движки вместо тяжёлых сборок — файлы игр со своей копии.</p>
+                  <div class="hero-stats"><div class="stat"><b>13/13</b><span>игр серии</span></div><div class="stat"><b>от 8 МБ</b><span>вес движка</span></div><div class="stat"><b id="statInst">0</b><span>готово</span></div></div>
+                  <div class="hero-cta"><button class="btn btn-cyan" data-act="open-game">🎮 FOX CITY — игра с джойстиком</button></div>
+                </div>
+              </div>
+              <div class="rule reveal">🦊 <b>Правило FoxAI:</b> эмуляторы и движки легальны. Файлы игр — только со своей копии. Пиратские «port.apk» — вирусы и DMCA.</div>
+              <h2 class="sec-title reveal">ТАЙМЛАЙН СЕРИИ</h2>
+              <div class="timeline reveal" id="timeline"></div>
+              <div class="controls reveal">
+                <div class="searchrow"><input id="searchInp" type="search" placeholder="Поиск: Vice City, Advance, IV…"><select id="sortSel"><option value="light">По лёгкости</option><option value="year">По году</option><option value="size">По весу</option></select></div>
+                <div class="chips"><button class="chip on" data-act="chip" data-chip="all">Все 13</button><button class="chip" data-act="chip" data-chip="light">🍃 Лёгкие</button><button class="chip" data-act="chip" data-chip="emu">Эмуляция</button><button class="chip" data-act="chip" data-chip="engine">Движки</button><button class="chip" data-act="chip" data-chip="weak">Слабый телефон</button></div>
+              </div>
+              <div id="resCount">Найдено: 13</div>
+              <div id="grid"></div>
+              <h2 class="sec-title reveal">🛡️ АНТИ-ФЕЙК</h2>
+              <div class="anti"><div class="anti-card reveal"><h3>⚠️ «GTA V / VI на телефон»</h3><p>Нативных портов IV и V нет. Любой «GTA5.apk» — фейк или вирус. Реально: облако Xbox или Winlator со своей PC-копией.</p><span class="anti-chip">НЕ СТАВИТЬ</span></div></div>
+              <h2 class="sec-title reveal">КАК ЭТО РАБОТАЕТ</h2>
+              <div class="steps reveal"><div class="step"><i>1</i><b>Выбери GTA</b><p>Карточка покажет лёгкий путь</p></div><div class="step"><i>2</i><b>Поставь движок</b><p>Эмулятор бесплатно</p></div><div class="step"><i>3</i><b>Своя копия</b><p>Дамп диска / UMD</p></div><div class="step"><i>4</i><b>▶ Играть</b><p>Лаунчер откроет эмулятор</p></div></div>
+              <footer>Сделано FoxAI 🦊 для Степы • v2.1</footer>
+            </section>
+            <section id="view-game" class="view">
+              <h2 class="sec-title" style="margin-top:6px">🎮 ВСТРОЕННАЯ ИГРА</h2>
+              <div class="game-poster"><div class="cover" id="gamePoster"></div></div>
+              <p class="game-desc">Неоновый город, рыжая тачка и касса по улицам. Собери сумму до конца таймера, пока копы не прижали. Джойстик слева, нитро справа. 🦊</p>
+              <div class="bestrow"><div class="stat"><b id="bestVal">0</b><span>рекорд</span></div><div class="stat"><b>3</b><span>сложности</span></div></div>
+              <button class="btn btn-play bigbtn" data-act="open-game">🕹️ ЗАПУСТИТЬ FOX CITY</button>
+              <h2 class="sec-title">ПОСЛЕДНИЕ ЗАЕЗДЫ</h2>
+              <div class="runs" id="runsList"></div>
+              <div class="note">В PPSSPP и RetroArch включай свой экранный геймпад — стики и кнопки рисуются прямо поверх игры.</div>
+            </section>
+            <section id="view-favs" class="view">
+              <h2 class="sec-title" style="margin-top:6px">♥ ИЗБРАННОЕ</h2>
+              <div id="favGrid"></div>
+              <div class="empty" id="favEmpty"><b>🦊</b>Пока пусто. Жми ♥ на карточке.</div>
+            </section>
+          </main>
+          <nav id="bottomnav"><div class="nav-in">
+            <button class="navbtn on" data-act="nav" data-view="catalog"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/></svg>Серия</button>
+            <button class="navbtn" data-act="nav" data-view="game"><svg viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="12" rx="6"/><path d="M7 11v4M5 13h4"/></svg>Fox City</button>
+            <button class="navbtn" data-act="nav" data-view="favs"><svg viewBox="0 0 24 24"><path d="M12 21C7 16.5 3 13 3 8.8 3 6 5.2 4 7.8 4c1.7 0 3.2.9 4.2 2.3C13 4.9 14.5 4 16.2 4 18.8 4 21 6 21 8.8c0 4.2-4 7.7-9 12.2z"/></svg>Избранное<span id="favBadge" style="display:none">0</span></button>
+          </div></nav>
+          <div id="sheet"><div class="scrim" data-act="close-sheet"></div><div class="panel"><button class="s-close" data-act="close-sheet">✕</button><div class="s-scroll" id="sheetBody"></div></div></div>
+          <div id="gameOverlay">
+            <canvas id="gameCanvas"></canvas><div class="vignette"></div><div class="scanlines"></div>
+            <div id="hud"><button class="hbtn" data-act="exit-game">✕</button><div class="hud-center"><div id="hCash">$0</div><div id="hTime">01:30</div><div class="hpwrap"><div id="hpFill"></div></div><div id="hStars">☆☆☆☆☆</div></div><button class="hbtn" data-act="pause">⏸</button></div>
+            <canvas id="mm" width="110" height="110"></canvas>
+            <div id="joyZone"><div id="joyBase"><div id="joyThumb"></div></div></div>
+            <button id="nitroBtn"><span class="nlabel">🔥<br>НИТРО</span></button>
+            <div class="gpanel" id="startPanel"><div class="gcard"><h2>FOX CITY</h2><div class="gsub">Собери кассу и уйди от полиции 🦊</div><div id="diffRow"><button class="diffchip" data-act="diff" data-diff="easy">ЛЕГКО</button><button class="diffchip on" data-act="diff" data-diff="norm">НОРМА</button><button class="diffchip" data-act="diff" data-diff="hard">ХАРД</button></div><div id="diffInfo"></div><button id="vibroBtn" data-act="vibro" class="on">📳 Вибро: вкл</button><button class="btn btn-play bigbtn" data-act="start-game">🚦 ПОЕХАЛИ</button><div class="ghint">🕹️ джойстик слева • 🔥 нитро справа<br>ПК: WASD, Shift — нитро, P — пауза<br>Рекорд: <b id="startBest">0</b></div></div></div>
+            <div class="gpanel" id="pausePanel"><div class="gcard"><h2>ПАУЗА</h2><div class="gsub">Город подождёт 😏</div><button class="btn btn-cyan bigbtn" data-act="resume">▶ ПРОДОЛЖИТЬ</button><div class="endrow"><button class="btn btn-ghost" data-act="restart">↻ Заново</button><button class="btn btn-ghost" data-act="exit-game">🚪 В лаунчер</button></div></div></div>
+            <div class="gpanel" id="endPanel"><div class="gcard"><h2 id="endTitle">ИТОГ</h2><div class="gsub" id="endSub"></div><div id="endRecord">🏆 НОВЫЙ РЕКОРД!</div><div id="endStats"></div><div class="endrow"><button class="btn btn-play" data-act="restart">↻ ЕЩЁ РАЗ</button><button class="btn btn-ghost" data-act="exit-game">🚪 В лаунчер</button></div></div></div>
+          </div>
+          <div id="toasts"></div>
+          <script src="cordova.js"></script>
+          <script>
+          function el(id){return document.getElementById(id);}
+          var store={get:function(k,d){try{var v=localStorage.getItem('fox_'+k);return v==null?d:JSON.parse(v);}catch(e){return d;}},set:function(k,v){try{localStorage.setItem('fox_'+k,JSON.stringify(v));}catch(e){}}};
+          function hexA(hex,a){var n=parseInt(hex.slice(1),16);return 'rgba('+(n>>16&255)+','+(n>>8&255)+','+(n&255)+','+a+')';}
+          function hash(s){var h=9;for(var i=0;i<s.length;i++)h=Math.imul(h^s.charCodeAt(i),387420489);return h>>>0;}
+          function mulberry(a){return function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+          function rr(c,x,y,w,h,r){c.beginPath();c.moveTo(x+r,y);c.arcTo(x+w,y,x+w,y+h,r);c.arcTo(x+w,y+h,x,y+h,r);c.arcTo(x,y+h,x,y,r);c.arcTo(x,y,x+w,y,r);c.closePath();}
+          function angDiff(a,b){return ((b-a+Math.PI*3)%(Math.PI*2))-Math.PI;}
+          function lerpAngle(a,b,t){return a+angDiff(a,b)*t;}
+          function fmtTime(s){s=Math.max(0,Math.ceil(s));var m=Math.floor(s/60),ss=s%60;return (m<10?'0':'')+m+':'+(ss<10?'0':'')+ss;}
+          function buzz(p){if(S.vibro&&navigator.vibrate){try{navigator.vibrate(p);}catch(e){}}}
+          function leaves(n){var s='';for(var i=0;i<n;i++)s+='🍃';return s;}
+          var TYPE_COLOR={emu:'#00e5ff',engine:'#7b2fff',official:'#ff9a3d',winlator:'#3d7bff',cloud:'#ff2e88'};
+          var RA={name:'RetroArch',pkg:'com.retroarch',store:'https://play.google.com/store/apps/details?id=com.retroarch'};
+          var GAMES=[
+          {id:'gta1',short:'GTA 1997',title:'Grand Theft Auto',year:1997,type:'emu',typeName:'ЭМУЛЯЦИЯ PS1',app:RA,engine:{name:'DuckStation',url:'https://github.com/stenzek/duckstation'},size:'≈ 90 МБ',sizeMb:90,light:5,device:'Любой телефон',need:'Свой диск PS1 или freeware PC',hue:'#a3ff3d',hue2:'#ffd23d',emoji:'🚕',tag:'КЛАССИКА',desc:'GTA 1997 года: вид сверху и три города. PS1-версия летает на любом телефоне.',method:['Поставь RetroArch','Скачай ядро PS1 (~2 МБ)','Открой образ со своего диска'],fan:'PC-версия GTA 1 была официальной freeware.'},
+          {id:'london',short:'LONDON',title:'GTA: London 1969/1961',year:1999,type:'emu',typeName:'ЭМУЛЯЦИЯ PS1',app:RA,size:'≈ 90 МБ',sizeMb:90,light:5,device:'Любой телефон',need:'Свой диск PS1',hue:'#ff4d5e',hue2:'#ffd23d',emoji:'🎡',tag:'АДДОН',desc:'Лондон 60-х на движке GTA 1. То же лёгкое PS1-ядро.',method:['Поставь RetroArch и ядро PS1','Открой образ London'],fan:'Единственные официальные аддоны серии.'},
+          {id:'gta2',short:'GTA 2',title:'Grand Theft Auto 2',year:1999,type:'emu',typeName:'ЭМУЛЯЦИЯ PS1',app:RA,size:'≈ 90 МБ',sizeMb:90,light:5,device:'Любой телефон',need:'Свой диск PS1 или freeware PC',hue:'#00e5ff',hue2:'#a3ff3d',emoji:'🏙️',tag:'FREEWARE',desc:'Город будущего и банды. PC был freeware, на телефоне — PS1.',method:['RetroArch + ядро PS1','Открой свой образ'],fan:'GTA 2 раздавалась бесплатно Rockstar Classics.'},
+          {id:'iii',short:'GTA III',title:'GTA: III',year:2001,type:'engine',typeName:'ОТКРЫТЫЙ ДВИЖОК',app:{name:'GTA III порт',pkg:'com.rockstargames.gta3',store:'https://play.google.com/store/apps/details?id=com.rockstargames.gta3'},engine:{name:'OpenRW',url:'https://github.com/rwengine/openrw'},size:'1.2 ГБ / 10 МБ',sizeMb:1200,light:4,device:'Любой телефон',need:'Своя копия для OpenRW',hue:'#3d7bff',hue2:'#7b2fff',emoji:'🌉',tag:'OPENRW',desc:'Liberty City в 3D. OpenRW на ПК, лёгкий официальный порт на телефоне.',method:['ПК: OpenRW + файлы своей GTA III','Телефон: порт из Play Маркета'],fan:'re3 удалён по DMCA (2021). OpenRW — чистая альтернатива.'},
+          {id:'vc',short:'VICE CITY',title:'GTA: Vice City',year:2002,type:'official',typeName:'ЛЁГКИЙ ПОРТ',app:{name:'Vice City порт',pkg:'com.rockstargames.gtavc',store:'https://play.google.com/store/apps/details?id=com.rockstargames.gtavc'},size:'≈ 1.5 ГБ',sizeMb:1500,light:4,device:'Любой телефон',need:'Покупка в Play Маркете',hue:'#ff2e88',hue2:'#00e5ff',emoji:'🌆',tag:'НЕОН',desc:'Неон и 80-е. Порт 2012 легче ремастеров и идёт на старых телефонах.',method:['Поставь порт из Play Маркета','Жми ▶ Играть'],fan:'reVC удалён по DMCA. «Lite APK» — пиратка.'},
+          {id:'sa',short:'SAN ANDREAS',title:'GTA: San Andreas',year:2004,type:'official',typeName:'ЛЁГКИЙ ПОРТ',app:{name:'SA порт',pkg:'com.rockstargames.gtasa',store:'https://play.google.com/store/apps/details?id=com.rockstargames.gtasa'},size:'≈ 2.6 ГБ',sizeMb:2600,light:3,device:'2 ГБ RAM+',need:'Покупка в Play Маркете',hue:'#ff9a3d',hue2:'#ff2e88',emoji:'🌴',tag:'БОЛЬШОЙ',desc:'Штат и история CJ. Порт 2014 шустро работает на бюджетниках.',method:['Поставь порт','Вернись — значок «Готово»','▶ Играть'],fan:'«SA Lite» сборки — пиратка с чужими файлами.'},
+          {id:'advance',short:'ADVANCE',title:'GTA: Advance',year:2004,type:'emu',typeName:'ЭМУЛЯЦИЯ GBA',app:RA,engine:{name:'mGBA',url:'https://github.com/mgba-emu/mgba'},size:'≈ 90 МБ',sizeMb:90,light:5,device:'Любой телефон',need:'Свой картридж GBA',hue:'#ffd23d',hue2:'#ff9a3d',emoji:'🎮',tag:'GBA',desc:'Единственная GTA для GBA. Эмуляция летает на всём.',method:['RetroArch + ядро mGBA','Открой свой ROM'],fan:'Официального порта Advance нет.'},
+          {id:'lcs',short:'LCS',title:'GTA: Liberty City Stories',year:2005,type:'emu',typeName:'ЭМУЛЯЦИЯ PSP',app:{name:'PPSSPP',pkg:'org.ppsspp.ppsspp',store:'https://play.google.com/store/apps/details?id=org.ppsspp.ppsspp'},engine:{name:'PPSSPP',url:'https://github.com/hrydgard/ppsspp'},size:'≈ 25 МБ',sizeMb:25,light:5,device:'Любой телефон',need:'Свой UMD → ISO',hue:'#00e5ff',hue2:'#3d7bff',emoji:'🚕',tag:'PSP',desc:'PPSSPP весит 25 МБ и тянет LCS на бюджетниках.',method:['Поставь PPSSPP','Открой ISO со своего UMD'],fan:'Официальный порт весит 1.8 ГБ — эмуляция легче.'},
+          {id:'vcs',short:'VCS',title:'GTA: Vice City Stories',year:2006,type:'emu',typeName:'ЭМУЛЯЦИЯ PSP',app:{name:'PPSSPP',pkg:'org.ppsspp.ppsspp',store:'https://play.google.com/store/apps/details?id=org.ppsspp.ppsspp'},size:'≈ 25 МБ',sizeMb:25,light:5,device:'Любой телефон',need:'Свой UMD → ISO',hue:'#ff2e88',hue2:'#ffd23d',emoji:'🌴',tag:'НЕТ ПОРТА',desc:'Официального порта VCS нет — PSP-эмуляция единственный путь.',method:['PPSSPP','ISO со своего UMD'],fan:'VCS и Advance — без официальных портов.'},
+          {id:'ctw',short:'CTW',title:'GTA: Chinatown Wars',year:2009,type:'emu',typeName:'ЭМУЛЯЦИЯ DS',app:{name:'melonDS',pkg:'me.magnum.melonds',store:'https://play.google.com/store/apps/details?id=me.magnum.melonds'},engine:{name:'melonDS',url:'https://github.com/melonDS-emu/melonDS'},size:'≈ 8 МБ',sizeMb:8,light:5,device:'Любой телефон',need:'Свой картридж DS',hue:'#ffd23d',hue2:'#a3ff3d',emoji:'🐉',tag:'САМЫЙ ЛЁГКИЙ',desc:'melonDS весит 8 МБ — самый лёгкий путь серии.',method:['Поставь melonDS','Открой свой ROM'],fan:'Есть и официальный порт 0.9 ГБ.'},
+          {id:'iv',short:'GTA IV',title:'GTA: IV',year:2008,type:'winlator',typeName:'WINLATOR',app:{name:'Winlator',pkg:'com.winlator',url:'https://github.com/brunodev85/winlator/releases'},size:'≈ 400 МБ+',sizeMb:400,light:1,device:'Топ Snapdragon',need:'Своя PC-копия IV',hue:'#7b9fff',hue2:'#3d7bff',emoji:'🗽',tag:'ТОЛЬКО ПК-КОПИЯ',desc:'Android-порта IV нет. Winlator + своя PC-копия, топ-железо.',method:['Скачай Winlator с GitHub','Установи свою PC-копию внутри'],fan:'«GTA IV Mobile.apk» — фейк.'},
+          {id:'eflc',short:'EFLC',title:'GTA: Episodes from LC',year:2009,type:'winlator',typeName:'WINLATOR',app:{name:'Winlator',pkg:'com.winlator',url:'https://github.com/brunodev85/winlator/releases'},size:'≈ 400 МБ+',sizeMb:400,light:1,device:'Топ Snapdragon',need:'Своя PC-копия EFLC',hue:'#3d7bff',hue2:'#00e5ff',emoji:'🏍️',tag:'TLAD+TBOGT',desc:'Два эпизода Liberty City. Всё как с IV.',method:['Winlator','Своя PC-копия EFLC'],fan:'В Complete Edition входят обе.'},
+          {id:'v',short:'GTA V',title:'GTA: V',year:2013,type:'cloud',typeName:'ОБЛАКО XBOX',app:{name:'Xbox Cloud',url:'https://www.xbox.com/play'},engine:{name:'Winlator',url:'https://github.com/brunodev85/winlator/releases'},size:'0 МБ стрим',sizeMb:0,light:5,device:'Любой + интернет',need:'Game Pass Ultimate',hue:'#a3ff3d',hue2:'#3dff9a',emoji:'💰',tag:'БЕЗ НАГРУЗКИ',desc:'Порта V нет — все APK фейки. Лёгкий путь: облако Xbox.',method:['Открой xbox.com/play','GTA V в каталоге облака (ротация)','Играй стримом'],fan:'Rockstar не выпускала V на Android.'}
+          ];
+          var FOXPOSTER={id:'fox',short:'FOX CITY',typeName:'ВСТРОЕННАЯ ИГРА',hue:'#00e5ff',hue2:'#ff2e88',emoji:'🦊'};
+          function byId(id){for(var i=0;i<GAMES.length;i++)if(GAMES[i].id===id)return GAMES[i];return null;}
+          var S={view:'catalog',q:'',chip:'all',sort:'light',favs:store.get('favs',[]),installed:{},sound:store.get('sound',true),vibro:store.get('vibro',true),best:store.get('best',0),runs:store.get('runs',[])};
+          var currentSheet=null;
+          function coverSVG(g){var r=mulberry(hash(g.id)),blds='',wins='',i,wx,wy;for(i=0;i<13;i++){var bw=20+r()*30,bh=36+r()*110,bx=8+i*46+r()*8,by=208-bh;blds+='<rect x="'+bx.toFixed(1)+'" y="'+by.toFixed(1)+'" width="'+bw.toFixed(1)+'" height="'+bh.toFixed(1)+'" fill="#130a2c" stroke="'+g.hue+'" stroke-opacity="0.55"/>';for(wy=by+7;wy<200;wy+=14)for(wx=bx+4;wx<bx+bw-5;wx+=10)if(r()<0.42)wins+='<rect x="'+wx.toFixed(1)+'" y="'+wy.toFixed(1)+'" width="4" height="6" fill="'+(r()<0.5?g.hue:g.hue2)+'" opacity="0.85"/>';}var grid='';for(i=0;i<=12;i++){var x=i*50;grid+='<line x1="'+(300+(x-300)*0.25)+'" y1="208" x2="'+x+'" y2="340" stroke="'+g.hue2+'" stroke-opacity="0.35"/>';}for(i=0;i<6;i++){var y=208+Math.pow(i/5,1.7)*132;grid+='<line x1="0" y1="'+y.toFixed(1)+'" x2="600" y2="'+y.toFixed(1)+'" stroke="'+g.hue2+'" stroke-opacity="0.3"/>';}var stripes='';for(i=0;i<5;i++)stripes+='<rect x="210" y="'+(150+i*14)+'" width="180" height="'+(4+i*1.5)+'" fill="url(#sky'+g.id+')"/>';return '<svg viewBox="0 0 600 340" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="sky'+g.id+'" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="340"><stop offset="0" stop-color="#0d0620"/><stop offset="0.6" stop-color="'+g.hue2+'" stop-opacity="0.4"/><stop offset="1" stop-color="#1b0b3a"/></linearGradient><linearGradient id="sun'+g.id+'" gradientUnits="userSpaceOnUse" x1="0" y1="72" x2="0" y2="228"><stop offset="0" stop-color="#ffd23d"/><stop offset="1" stop-color="'+g.hue+'"/></linearGradient></defs><rect width="600" height="340" fill="url(#sky'+g.id+')"/><circle cx="300" cy="150" r="78" fill="url(#sun'+g.id+')"/>'+stripes+'<rect x="0" y="204" width="600" height="6" fill="'+g.hue+'" opacity="0.5"/>'+blds+wins+grid+'<text x="300" y="168" text-anchor="middle" font-size="58">'+g.emoji+'</text><text x="300" y="300" text-anchor="middle" font-family="Russo One, sans-serif" font-size="28" letter-spacing="3" fill="#fff">'+g.short+'</text><text x="300" y="322" text-anchor="middle" font-family="Manrope, sans-serif" font-size="10" letter-spacing="4" fill="'+g.hue+'">'+(g.typeName||'FOXAI')+' • FOXAI</text></svg>';}
+          function renderTimeline(){var list=GAMES.slice().sort(function(a,b){return a.year-b.year;});el('timeline').innerHTML=list.map(function(g){return '<button class="tl-item" data-act="tl" data-id="'+g.id+'" style="--h:'+g.hue+'"><span class="tl-emoji">'+g.emoji+'</span><span class="tl-dot"></span><span class="tl-year">'+g.year+'</span><span class="tl-short">'+g.short+'</span></button>';}).join('');}
+          var HEART='<svg viewBox="0 0 24 24"><path d="M12 21C7 16.5 3 13 3 8.8 3 6 5.2 4 7.8 4c1.7 0 3.2.9 4.2 2.3C13 4.9 14.5 4 16.2 4 18.8 4 21 6 21 8.8c0 4.2-4 7.7-9 12.2z"/></svg>';
+          function dlLabel(g){return g.type==='emu'?'⬇ Эмулятор':g.type==='winlator'?'⬇ Winlator':g.type==='cloud'?'☁️ Облако':'⬇ Скачать';}
+          function cardHTML(g,i){var fav=S.favs.indexOf(g.id)>-1,inst=g.app.pkg&&S.installed[g.app.pkg];return '<article class="card reveal" id="card-'+g.id+'" data-id="'+g.id+'" style="--h:'+g.hue+';--tc:'+TYPE_COLOR[g.type]+';--hSoft:'+hexA(g.hue,.2)+';--hGlow:'+hexA(g.hue,.35)+'"><div class="cover">'+coverSVG(g)+'<span class="badge-type">'+g.typeName+'</span><span class="feathers">'+leaves(g.light)+'</span>'+(inst?'<span class="badge-inst">ГОТОВО ✓</span>':'')+'</div><div class="cbody"><div class="ctitle"><h3>'+g.title+'</h3><button class="heart'+(fav?' on':'')+'" data-act="fav" data-id="'+g.id+'">'+HEART+'</button></div><div class="meta"><span>'+g.year+'</span><span>'+g.size+'</span><span>'+g.device+'</span><span class="tag">'+g.tag+'</span></div><p class="cdesc">'+g.desc+'</p><div class="actions"><button class="btn '+(inst?'btn-ghost':'btn-primary')+'" data-act="dl" data-id="'+g.id+'">'+dlLabel(g)+'</button><button class="btn '+(inst?'btn-play':'btn-ghost')+'" data-act="play" data-id="'+g.id+'">▶ Играть</button><button class="btn btn-icon" data-act="info" data-id="'+g.id+'">ⓘ</button></div></div></article>';}
+          function filtered(){var list=GAMES.slice(),q=S.q.trim().toLowerCase();if(q)list=list.filter(function(g){return (g.title+' '+g.desc+' '+g.short).toLowerCase().indexOf(q)>-1;});if(S.chip==='light')list=list.filter(function(g){return g.light>=5;});if(S.chip==='emu')list=list.filter(function(g){return g.type==='emu';});if(S.chip==='engine')list=list.filter(function(g){return g.type==='engine';});if(S.chip==='weak')list=list.filter(function(g){return g.device.indexOf('Любой')===0;});if(S.sort==='year')list.sort(function(a,b){return a.year-b.year;});else if(S.sort==='size')list.sort(function(a,b){return a.sizeMb-b.sizeMb;});else list.sort(function(a,b){return b.light-a.light||a.sizeMb-b.sizeMb;});return list;}
+          var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);}});},{threshold:.08});
+          function observeReveals(root){root.querySelectorAll('.reveal:not(.in)').forEach(function(n){io.observe(n);});}
+          function renderCatalog(){var list=filtered();el('resCount').textContent='Найдено: '+list.length+' из 13';el('grid').innerHTML=list.length?list.map(cardHTML).join(''):'<div class="empty"><b>🦊</b>Ничего не нашлось.</div>';observeReveals(el('grid'));}
+          function renderFavs(){var list=GAMES.filter(function(g){return S.favs.indexOf(g.id)>-1;});el('favGrid').innerHTML=list.map(cardHTML).join('');el('favEmpty').style.display=list.length?'none':'block';observeReveals(el('favGrid'));}
+          function renderChips(){document.querySelectorAll('.chip').forEach(function(c){c.classList.toggle('on',c.getAttribute('data-chip')===S.chip);});}
+          function updateBadges(){var n=S.favs.length,b=el('favBadge');b.style.display=n?'flex':'none';b.textContent=n;var inst=0;GAMES.forEach(function(g){if(g.app.pkg&&S.installed[g.app.pkg])inst++;});el('statInst').textContent=inst;}
+          function toggleFav(id){var i=S.favs.indexOf(id);if(i>-1){S.favs.splice(i,1);toast('Убрано из избранного');}else{S.favs.push(id);toast('Добавлено ♥','ok');}store.set('favs',S.favs);renderCatalog();renderFavs();updateBadges();if(currentSheet&&el('sheet').classList.contains('open')&&currentSheet.id===id)el('sheetBody').innerHTML=sheetHTML(currentSheet);}
+          function sheetHTML(g){var fav=S.favs.indexOf(g.id)>-1,inst=g.app.pkg&&S.installed[g.app.pkg];var steps=g.method.map(function(m){return '<li>'+m+'</li>';}).join('');var links=g.engine?'<button class="btn btn-ghost" data-act="link" data-url="'+g.engine.url+'">⚙️ '+g.engine.name+'</button>':'';return '<div class="s-cover">'+coverSVG(g)+'</div><div class="s-head"><div><h2>'+g.title+'</h2><div class="s-sub">'+g.year+' • '+g.app.name+'</div></div><div class="lightbox"><b>'+g.light+'/5</b><span>ЛЁГКОСТЬ</span><div>'+leaves(g.light)+'</div></div></div><div class="s-meta"><div><span>Год</span><b>'+g.year+'</b></div><div><span>Вес</span><b>'+g.size+'</b></div><div><span>Устройство</span><b>'+g.device+'</b></div><div><span>Путь</span><b>'+g.app.name+'</b></div></div><div class="s-need"><span>ЧТО НУЖНО 🦊</span>'+g.need+'</div><div class="s-how"><h4>Как запустить</h4><ol>'+steps+'</ol></div><div class="s-fan"><span>ФАН-ИСТОРИЯ</span>'+g.fan+'</div>'+(links?'<div class="s-links">'+links+'</div>':'')+'<div class="s-actions"><button class="btn btn-primary" data-act="dl" data-id="'+g.id+'">'+dlLabel(g)+'</button><button class="btn '+(inst?'btn-play':'btn-ghost')+'" data-act="play" data-id="'+g.id+'">▶ Играть</button><button class="heart big'+(fav?' on':'')+'" data-act="fav" data-id="'+g.id+'">'+HEART+'</button></div>';}
+          function openSheet(g){if(!g)return;currentSheet=g;el('sheetBody').innerHTML=sheetHTML(g);el('sheetBody').scrollTop=0;el('sheet').classList.add('open');document.body.classList.add('lock');}
+          function closeSheet(){el('sheet').classList.remove('open');if(!overlayOpen)document.body.classList.remove('lock');}
+          function openExternal(url){if(window.cordova)window.open(url,'_system');else window.open(url,'_blank');}
+          function doDownload(g){if(g.app.pkg){if(window.FoxLaunch)FoxLaunch.openStore(g.pkg,function(){},function(){openExternal(g.app.store||g.app.url);});else openExternal(g.app.store||g.app.url);toast('Открываю '+g.app.name);}else{openExternal(g.app.url);toast('Открываю '+g.app.name);}}
+          function doPlay(g){if(!g.app.pkg){openExternal(g.app.url);return;}if(window.FoxLaunch){FoxLaunch.isInstalled(g.app.pkg,function(v){if(v==1)FoxLaunch.launch(g.app.pkg,function(){toast('Запускаю '+g.app.name+' 🦊','ok');},function(){doDownload(g);});else{toast('Сначала поставь '+g.app.name,'warn');doDownload(g);}},function(){doDownload(g);});}else{doDownload(g);toast('В APK кнопка ▶ запускает напрямую');}}
+          function refreshInstalled(){if(!window.FoxLaunch)return;var seen={};GAMES.forEach(function(g){var pkg=g.app.pkg;if(!pkg||seen[pkg])return;seen[pkg]=1;FoxLaunch.isInstalled(pkg,function(v){var now=(v==1);if(S.installed[pkg]!==now){S.installed[pkg]=now;renderCatalog();renderFavs();updateBadges();}},function(){});});}
+          function switchView(v){S.view=v;document.querySelectorAll('.view').forEach(function(s){s.classList.remove('active');});el('view-'+v).classList.add('active');document.querySelectorAll('.navbtn').forEach(function(b){b.classList.toggle('on',b.getAttribute('data-view')===v);});window.scrollTo(0,0);if(v==='game'){renderRuns();renderBest();}if(v==='favs')renderFavs();observeReveals(el('view-'+v));}
+          function toast(msg,type){var box=el('toasts');while(box.children.length>=3)box.removeChild(box.firstChild);var t=document.createElement('div');t.className='toast '+(type||'');t.innerHTML='<b>'+(type==='ok'?'✓':type==='warn'?'⚠️':'🦊')+'</b><span>'+msg+'</span>';box.appendChild(t);setTimeout(function(){t.style.opacity='0';setTimeout(function(){if(t.parentNode)t.parentNode.removeChild(t);},320);},2600);}
+          var AudioFX={ctx:null,master:null,engO:null,engG:null,sirO:null,sirG:null,noise:null,init:function(){if(this.ctx)return;try{var AC=window.AudioContext||window.webkitAudioContext;this.ctx=new AC();this.master=this.ctx.createGain();this.master.gain.value=S.sound?1:0;this.master.connect(this.ctx.destination);var len=this.ctx.sampleRate,buf=this.ctx.createBuffer(1,len,this.ctx.sampleRate),d=buf.getChannelData(0);for(var i=0;i<len;i++)d[i]=Math.random()*2-1;this.noise=buf;}catch(e){}},resume:function(){if(this.ctx&&this.ctx.state==='suspended')this.ctx.resume();},setEnabled:function(on){if(this.master)this.master.gain.setTargetAtTime(on?1:0,this.ctx.currentTime,.02);},startEngine:function(){if(!this.ctx||this.engO)return;var c=this.ctx;this.engO=c.createOscillator();this.engO.type='sawtooth';this.engO.frequency.value=70;var f=c.createBiquadFilter();f.type='lowpass';f.frequency.value=420;this.engG=c.createGain();this.engG.gain.value=0;this.engO.connect(f);f.connect(this.engG);this.engG.connect(this.master);this.engO.start();this.engG.gain.setTargetAtTime(.05,c.currentTime,.1);},setEngine:function(sp,boost){if(!this.engO)return;var t=this.ctx.currentTime;this.engO.frequency.setTargetAtTime(60+sp*.35+(boost?70:0),t,.05);this.engG.gain.setTargetAtTime(.035+sp/265*.035,t,.08);},stopEngine:function(){if(!this.engO)return;var o=this.engO,g=this.engG,t=this.ctx.currentTime;g.gain.setTargetAtTime(0,t,.05);try{o.stop(t+.2);}catch(e){}this.engO=null;this.engG=null;},siren:function(prox,t){if(!this.ctx)return;if(!this.sirO){this.sirO=this.ctx.createOscillator();this.sirO.type='square';this.sirG=this.ctx.createGain();this.sirG.gain.value=0;this.sirO.connect(this.sirG);this.sirG.connect(this.master);this.sirO.start();}this.sirO.frequency.value=(t%0.9<0.45?740:980);this.sirG.gain.setTargetAtTime(prox*.028,this.ctx.currentTime,.06);},blip:function(f,dur,type,vol){if(!this.ctx)return;var c=this.ctx,o=c.createOscillator(),g=c.createGain();o.type=type||'sine';o.frequency.value=f;g.gain.value=vol||.1;g.gain.setTargetAtTime(0,c.currentTime,dur*.5);o.connect(g);g.connect(this.master);o.start();o.stop(c.currentTime+dur+.1);},coin:function(){this.blip(880,.09,'square',.08);var s=this;setTimeout(function(){s.blip(1320,.14,'square',.08);},70);},hit:function(){if(!this.ctx)return;var c=this.ctx,s=c.createBufferSource();s.buffer=this.noise;var g=c.createGain();g.gain.value=.28;g.gain.setTargetAtTime(0,c.currentTime,.08);s.connect(g);g.connect(this.master);s.start();s.stop(c.currentTime+.3);this.blip(75,.2,'sine',.32);},win:function(){var s=this;[523,659,784,1046].forEach(function(f,i){setTimeout(function(){s.blip(f,.22,'triangle',.14);},i*130);});},lose:function(){var s=this;[392,330,262,196].forEach(function(f,i){setTimeout(function(){s.blip(f,.25,'triangle',.13);},i*150);});},click:function(){this.blip(1400,.05,'sine',.04);}};
+          function toggleSound(){S.sound=!S.sound;store.set('sound',S.sound);if(S.sound){AudioFX.init();AudioFX.resume();}AudioFX.setEnabled(S.sound);el('soundBtn').classList.toggle('muted',!S.sound);toast(S.sound?'Звук включён 🔊':'Звук выключен 🔇');}
+          var DIFFS={easy:{goal:1800,time:100,cops:2,spd:.85},norm:{goal:2500,time:90,cops:3,spd:1},hard:{goal:3200,time:80,cops:5,spd:1.15}};
+          var G={state:'idle',diff:'norm',player:{x:1200,y:1200,a:-Math.PI/2,sp:0,hp:100},cops:[],picks:[],parts:[],cash:0,goal:2500,time:90,maxCops:3,copSpeed:1,wanted:0,shake:0,cam:{x:1200,y:1200},nitro:100,nitroOn:false,spawnT:4,inv:0,sirenProx:0};
+          var WORLD=2400,CELL=300,ROAD=96,BLD=[],cityCv=null,rafId=0,lastT=0,perfT=0,overlayOpen=false,DPR=1,J={x:0,y:0,pid:null},K={x:0,y:0},keys={};
+          function buildCity(){cityCv=document.createElement('canvas');cityCv.width=WORLD;cityCv.height=WORLD;var c=cityCv.getContext('2d'),r=mulberry(777),i,j,k;c.fillStyle='#0d0722';c.fillRect(0,0,WORLD,WORLD);c.fillStyle='#191033';for(k=0;k<=8;k++){c.fillRect(k*CELL-ROAD/2,0,ROAD,WORLD);c.fillRect(0,k*CELL-ROAD/2,WORLD,ROAD);}c.strokeStyle='rgba(255,210,61,.35)';c.lineWidth=3;c.setLineDash([22,26]);for(k=0;k<=8;k++){c.beginPath();c.moveTo(k*CELL,0);c.lineTo(k*CELL,WORLD);c.stroke();c.beginPath();c.moveTo(0,k*CELL);c.lineTo(WORLD,k*CELL);c.stroke();}c.setLineDash([]);var hues=['#7b2fff','#ff2e88','#00e5ff','#3d7bff'];for(i=0;i<8;i++)for(j=0;j<8;j++){var x0=i*CELL+ROAD/2+16,y0=j*CELL+ROAD/2+16,w=CELL-ROAD-32;if(r()<.18){c.fillStyle='#10240f';rr(c,x0,y0,w,w,12);c.fill();continue;}var ins=r()*20,bx=x0+ins,by=y0+ins,bw=w-ins*2,bh=w-ins*2,hue=hues[Math.floor(r()*4)];BLD.push({x:bx,y:by,w:bw,h:bh});c.fillStyle='#160c33';rr(c,bx,by,bw,bh,10);c.fill();c.globalAlpha=.8;c.strokeStyle=hue;c.lineWidth=2;rr(c,bx,by,bw,bh,10);c.stroke();c.globalAlpha=1;for(var wx=bx+12;wx<bx+bw-14;wx+=22)for(var wy=by+12;wy<by+bh-16;wy+=26){c.fillStyle=r()<.4?hue:'#241650';c.globalAlpha=r()<.4?.9:.5;c.fillRect(wx,wy,10,14);}c.globalAlpha=1;}for(i=0;i<=8;i++)for(j=0;j<=8;j++){var gx=i*CELL,gy=j*CELL,col=(i+j)%2?'0,229,255':'255,46,136';var gr=c.createRadialGradient(gx,gy,4,gx,gy,64);gr.addColorStop(0,'rgba('+col+',.16)');gr.addColorStop(1,'rgba('+col+',0)');c.fillStyle=gr;c.beginPath();c.arc(gx,gy,64,0,7);c.fill();}}
+          function hitB(x,y,r){for(var i=0;i<BLD.length;i++){var b=BLD[i];if(x+r>b.x&&x-r<b.x+b.w&&y+r>b.y&&y-r<b.y+b.h)return true;}return false;}
+          function moveEnt(e,dx,dy,r){if(!hitB(e.x+dx,e.y,r))e.x+=dx;if(!hitB(e.x,e.y+dy,r))e.y+=dy;e.x=Math.max(24,Math.min(WORLD-24,e.x));e.y=Math.max(24,Math.min(WORLD-24,e.y));}
+          function placePick(){for(var t=0;t<60;t++){var vert=Math.random()<.5,line=Math.floor(Math.random()*9)*300,along=120+Math.random()*2160,off=Math.random()*40-20;var x=vert?line+off:along,y=vert?along:line+off;if(x<40||x>2360||y<40||y>2360)continue;var d=Math.hypot(x-G.player.x,y-G.player.y);if(d>340&&d<1400&&!hitB(x,y,14))return{x:x,y:y};}return{x:1200,y:900};}
+          function spawnCop(){for(var t=0;t<40;t++){var x=Math.floor(Math.random()*9)*300,y=Math.floor(Math.random()*9)*300;var d=Math.hypot(x-G.player.x,y-G.player.y);if(d>600&&d<1600){G.cops.push({x:Math.max(24,x),y:Math.max(24,y),a:Math.atan2(G.player.y-y,G.player.x-x),stuck:0});return;}}G.cops.push({x:150,y:150,a:0,stuck:0});}
+          function addPart(x,y,vx,vy,life,hue,size){if(G.parts.length>300)G.parts.shift();G.parts.push({type:'p',x:x,y:y,vx:vx,vy:vy,life:life,max:life,hue:hue,size:size});}
+          function burst(x,y,hue,n){for(var i=0;i<n;i++){var a=Math.random()*Math.PI*2,sp=40+Math.random()*130;addPart(x,y,Math.cos(a)*sp,Math.sin(a)*sp,.4+Math.random()*.5,hue,3+Math.random()*3);}}
+          function sizeCanvas(){DPR=Math.min(2,window.devicePixelRatio||1);var cv=el('gameCanvas');cv.width=Math.round(window.innerWidth*DPR);cv.height=Math.round(window.innerHeight*DPR);}
+          function resetWorld(){var d=DIFFS[G.diff];G.goal=d.goal;G.time=d.time;G.maxCops=d.cops;G.copSpeed=d.spd;G.player={x:1200,y:1200,a:-Math.PI/2,sp:0,hp:100};G.cash=0;G.wanted=0;G.nitro=100;G.nitroOn=false;G.inv=0;G.shake=0;G.spawnT=4;G.cops=[];G.parts=[];G.picks=[];spawnCop();for(var i=0;i<12;i++)G.picks.push(placePick());G.cam.x=1200;G.cam.y=1200;J.x=0;J.y=0;el('joyThumb').style.transform='translate(0,0)';el('hCash').textContent='$0 / $'+G.goal;el('hTime').textContent=fmtTime(G.time);el('hpFill').style.width='100%';el('hStars').textContent='☆☆☆☆☆';}
+          function syncPanels(){el('startPanel').classList.toggle('show',G.state==='start');el('pausePanel').classList.toggle('show',G.state==='paused');el('endPanel').classList.toggle('show',G.state==='over');el('gameOverlay').classList.toggle('play',G.state==='running');}
+          function renderDiff(){document.querySelectorAll('.diffchip').forEach(function(c){c.classList.toggle('on',c.getAttribute('data-diff')===G.diff);});var d=DIFFS[G.diff];el('diffInfo').textContent='Цель $'+d.goal+' • '+d.time+' сек • '+d.cops+' копов';el('vibroBtn').classList.toggle('on',S.vibro);el('vibroBtn').textContent=S.vibro?'📳 Вибро: вкл':'📴 Вибро: выкл';el('startBest').textContent=S.best;}
+          function openGame(){overlayOpen=true;el('gameOverlay').classList.add('open');document.body.classList.add('lock');if(!cityCv)buildCity();sizeCanvas();resetWorld();G.state='start';syncPanels();renderDiff();AudioFX.init();AudioFX.resume();startLoop();}
+          function closeGame(){overlayOpen=false;G.state='idle';AudioFX.stopEngine();AudioFX.siren(0,0);el('gameOverlay').classList.remove('open','play');if(!el('sheet').classList.contains('open'))document.body.classList.remove('lock');renderRuns();renderBest();}
+          function startRun(){resetWorld();G.state='running';syncPanels();AudioFX.init();AudioFX.resume();AudioFX.startEngine();}
+          function pauseGame(){if(G.state!=='running')return;G.state='paused';syncPanels();AudioFX.stopEngine();AudioFX.siren(0,0);}
+          function resumeGame(){G.state='running';syncPanels();AudioFX.startEngine();}
+          function endRun(won,reason){G.state='over';AudioFX.stopEngine();AudioFX.siren(0,0);var score=G.cash+(won?500+Math.ceil(G.time)*10:0);var rec=score>S.best;if(rec){S.best=score;store.set('best',score);}S.runs.unshift({won:won,score:score,cash:G.cash,diff:G.diff,d:Date.now()});S.runs=S.runs.slice(0,6);store.set('runs',S.runs);var t=el('endTitle');t.textContent=won?'ПОБЕГ УДАЛСЯ! 🦊':(reason==='bust'?'ТЕБЯ ВЗЯЛИ 🚔':'ВРЕМЯ ВЫШЛО ⏱');t.className=won?'win':'lose';el('endSub').textContent=won?'Касса собрана, ты растворился в неоне.':(reason==='bust'?'Копы прижали к обочине.':'Касса не добрана.');el('endStats').innerHTML='<div><span>КАССА</span><b>$'+G.cash+'</b></div><div><span>ОЧКИ</span><b>'+score+'</b></div><div><span>РЕКОРД</span><b>'+S.best+'</b></div>';el('endRecord').style.display=rec?'block':'none';if(won)AudioFX.win();else AudioFX.lose();buzz(won?[40,60,40]:[120]);syncPanels();renderRuns();renderBest();}
+          function renderBest(){el('bestVal').textContent=S.best;el('startBest').textContent=S.best;}
+          function renderRuns(){var names={easy:'ЛЕГКО',norm:'НОРМА',hard:'ХАРД'};el('runsList').innerHTML=S.runs.length?S.runs.map(function(r){return '<div class="run"><span>'+(r.won?'🏆':'💥')+'</span><span>'+names[r.diff]+' • $'+r.cash+'</span><b>'+r.score+'</b></div>';}).join(''):'<div class="empty" style="padding:20px"><b>🕹️</b>Сыграй первый заезд!</div>';}
+          function startLoop(){if(rafId)cancelAnimationFrame(rafId);lastT=performance.now()/1000;rafId=requestAnimationFrame(tick);}
+          function tick(ts){if(!overlayOpen){rafId=0;return;}var t=ts/1000,dt=Math.min(.033,Math.max(0,t-lastT));lastT=t;perfT=t;if(G.state==='running')update(dt);draw(t);rafId=requestAnimationFrame(tick);}
+          function update(dt){var P=G.player,i;G.time-=dt;if(G.time<=0){G.time=0;endRun(false,'time');return;}G.inv=Math.max(0,G.inv-dt);var ix=J.x,iy=J.y;if(K.x||K.y){ix=K.x;iy=K.y;}var mag=Math.min(1,Math.hypot(ix,iy));var boost=G.nitroOn&&G.nitro>0&&mag>.15;var max=265*(boost?1.55:1);if(mag>.15){var ta=Math.atan2(iy,ix),da=angDiff(P.a,ta);P.a=lerpAngle(P.a,ta,Math.min(1,dt*7));var sp=mag*max;P.sp=sp;moveEnt(P,Math.cos(P.a)*sp*dt,Math.sin(P.a)*sp*dt,16);if(boost){G.nitro=Math.max(0,G.nitro-dt*30);addPart(P.x-Math.cos(P.a)*22,P.y-Math.sin(P.a)*22,-Math.cos(P.a)*60,-Math.sin(P.a)*60,.4,'#00e5ff',5);}if(Math.abs(da)>.6&&sp>180)addPart(P.x,P.y,0,0,.5,'#9d8fc7',4);}else P.sp=0;if(!boost)G.nitro=Math.min(100,G.nitro+dt*14);G.spawnT-=dt;if(G.spawnT<=0&&G.cops.length<G.maxCops){spawnCop();G.spawnT=Math.max(2.2,5.5-G.wanted*.6);}var nearest=9999;for(i=0;i<G.cops.length;i++){var c=G.cops[i];c.a=lerpAngle(c.a,Math.atan2(P.y-c.y,P.x-c.x),Math.min(1,dt*3));var csp=(175+G.wanted*14)*G.copSpeed,ox=c.x,oy=c.y;moveEnt(c,Math.cos(c.a)*csp*dt,Math.sin(c.a)*csp*dt,16);if(Math.hypot(c.x-ox,c.y-oy)<csp*dt*.25){c.stuck+=dt;if(c.stuck>1){c.a+=Math.PI/2;c.stuck=0;}}else c.stuck=0;var d=Math.hypot(P.x-c.x,P.y-c.y);if(d<nearest)nearest=d;if(d<34&&G.inv<=0){P.hp-=14;G.inv=1;G.shake=14;var ka=Math.atan2(P.y-c.y,P.x-c.x);moveEnt(P,Math.cos(ka)*46,Math.sin(ka)*46,16);burst(P.x,P.y,'#ff4d5e',16);AudioFX.hit();buzz(70);if(P.hp<=0){P.hp=0;endRun(false,'bust');return;}}}if(nearest>320)P.hp=Math.min(100,P.hp+dt*2.5);AudioFX.siren(Math.max(0,1-nearest/520),perfT);AudioFX.setEngine(P.sp,boost);for(i=0;i<G.picks.length;i++){var p=G.picks[i];if(Math.hypot(P.x-p.x,P.y-p.y)<30){var val=150+60*Math.floor(G.wanted);G.cash+=val;G.wanted=Math.min(5,G.wanted+.6);burst(p.x,p.y,'#3dff9a',12);G.parts.push({type:'txt',txt:'+$'+val,x:p.x,y:p.y-20,vx:0,vy:-46,life:1,max:1,hue:'#3dff9a',size:16});AudioFX.coin();buzz(25);G.picks[i]=placePick();if(G.cash>=G.goal){endRun(true,'cash');return;}}}G.wanted=Math.max(0,G.wanted-dt*.03);for(i=G.parts.length-1;i>=0;i--){var q=G.parts[i];q.life-=dt;if(q.life<=0){G.parts.splice(i,1);continue;}q.x+=q.vx*dt;q.y+=q.vy*dt;}el('hCash').textContent='$'+G.cash+' / $'+G.goal;var tEl=el('hTime');tEl.textContent=fmtTime(G.time);tEl.classList.toggle('low',G.time<15);el('hpFill').style.width=P.hp+'%';el('hpFill').classList.toggle('low',P.hp<35);var full=Math.min(5,Math.floor(G.wanted));el('hStars').textContent='★★★★★'.slice(0,full)+'☆☆☆☆☆'.slice(0,5-full);el('nitroBtn').style.background='conic-gradient(#00e5ff '+(G.nitro*3.6)+'deg, rgba(0,229,255,0.12) 0deg)';}
+          function draw(t){var cv=el('gameCanvas'),c=cv.getContext('2d'),w=cv.width/DPR,h=cv.height/DPR,P=G.player,i;G.cam.x+=(P.x-G.cam.x)*.09;G.cam.y+=(P.y-G.cam.y)*.09;G.shake*=.88;c.setTransform(DPR,0,0,DPR,0,0);c.fillStyle='#0b0620';c.fillRect(0,0,w,h);c.save();c.translate(Math.round(w/2-G.cam.x+(Math.random()*2-1)*G.shake),Math.round(h/2-G.cam.y+(Math.random()*2-1)*G.shake));c.drawImage(cityCv,0,0);for(i=0;i<G.picks.length;i++){var p=G.picks[i],pu=1+Math.sin(t*4+i)*.15;c.save();c.translate(p.x,p.y);c.scale(pu,pu);c.shadowColor='#3dff9a';c.shadowBlur=18;c.fillStyle='#3dff9a';c.beginPath();c.moveTo(0,-12);c.lineTo(10,0);c.lineTo(0,12);c.lineTo(-10,0);c.closePath();c.fill();c.shadowBlur=0;c.fillStyle='#062d18';c.font='bold 12px sans-serif';c.textAlign='center';c.textBaseline='middle';c.fillText('$',0,1);c.restore();}for(i=0;i<G.cops.length;i++){var cop=G.cops[i],flash=(t*6+i)%2<1;c.save();c.translate(cop.x,cop.y);c.rotate(cop.a);c.shadowColor=flash?'#ff4d5e':'#3d7bff';c.shadowBlur=24;c.fillStyle='#e8ecf5';rr(c,-20,-11,40,22,6);c.fill();c.shadowBlur=0;c.fillStyle=flash?'#ff4d5e':'#3d7bff';c.fillRect(-4,-9,4,18);c.fillStyle=flash?'#3d7bff':'#ff4d5e';c.fillRect(0,-9,4,18);c.restore();}c.save();c.translate(P.x,P.y);c.rotate(P.a);if(G.inv>0&&Math.floor(t*12)%2===0)c.globalAlpha=.45;c.shadowColor='#ff9a3d';c.shadowBlur=20;c.fillStyle='#ff9a3d';rr(c,-21,-12,42,24,7);c.fill();c.shadowBlur=0;c.fillStyle='#fff';c.fillRect(2,-12,6,24);c.fillStyle='#ffd23d';c.fillRect(17,-8,4,5);c.fillRect(17,3,4,5);c.font='11px sans-serif';c.textAlign='center';c.textBaseline='middle';c.fillText('🦊',-6,1);c.restore();for(i=0;i<G.parts.length;i++){var q=G.parts[i],al=Math.max(0,q.life/q.max);c.globalAlpha=al;if(q.type==='txt'){c.fillStyle=q.hue;c.font='bold 16px sans-serif';c.textAlign='center';c.fillText(q.txt,q.x,q.y);}else{c.fillStyle=q.hue;c.beginPath();c.arc(q.x,q.y,q.size*al+1,0,7);c.fill();}}c.globalAlpha=1;c.restore();drawMinimap();}
+          function drawMinimap(){var m=el('mm'),c=m.getContext('2d'),s=110/WORLD,i;c.clearRect(0,0,110,110);c.fillStyle='rgba(11,6,32,.9)';c.fillRect(0,0,110,110);c.strokeStyle='rgba(157,143,199,.35)';for(i=0;i<=8;i++){var v=i*300*s;c.beginPath();c.moveTo(v,0);c.lineTo(v,110);c.moveTo(0,v);c.lineTo(110,v);c.stroke();}c.fillStyle='#3dff9a';for(i=0;i<G.picks.length;i++)c.fillRect(G.picks[i].x*s-1.5,G.picks[i].y*s-1.5,3,3);c.fillStyle='#ff4d5e';for(i=0;i<G.cops.length;i++){c.beginPath();c.arc(G.cops[i].x*s,G.cops[i].y*s,2.5,0,7);c.fill();}c.fillStyle='#ff9a3d';c.beginPath();c.arc(G.player.x*s,G.player.y*s,3.5,0,7);c.fill();}
+          (function(){var zone=el('joyZone'),base=el('joyBase'),thumb=el('joyThumb');function joyUpdate(e){var r=base.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2;var dx=e.clientX-cx,dy=e.clientY-cy,m=Math.hypot(dx,dy),max=r.width/2-10;if(m>max){dx=dx/m*max;dy=dy/m*max;}thumb.style.transform='translate('+dx+'px,'+dy+'px)';if(Math.min(1,m/max)<.12){J.x=0;J.y=0;}else{J.x=dx/max;J.y=dy/max;}}zone.addEventListener('pointerdown',function(e){if(J.pid!==null)return;J.pid=e.pointerId;try{zone.setPointerCapture(e.pointerId);}catch(err){}base.classList.add('active');joyUpdate(e);e.preventDefault();});zone.addEventListener('pointermove',function(e){if(e.pointerId===J.pid)joyUpdate(e);});function joyEnd(e){if(e.pointerId!==J.pid)return;J.pid=null;J.x=0;J.y=0;thumb.style.transform='translate(0,0)';base.classList.remove('active');}zone.addEventListener('pointerup',joyEnd);zone.addEventListener('pointercancel',joyEnd);var nb=el('nitroBtn');nb.addEventListener('pointerdown',function(e){G.nitroOn=true;try{nb.setPointerCapture(e.pointerId);}catch(err){}e.preventDefault();});['pointerup','pointercancel'].forEach(function(ev){nb.addEventListener(ev,function(){G.nitroOn=false;});});function updKeys(){K.x=((keys['d']||keys['arrowright'])?1:0)-((keys['a']||keys['arrowleft'])?1:0);K.y=((keys['s']||keys['arrowdown'])?1:0)-((keys['w']||keys['arrowup'])?1:0);}window.addEventListener('keydown',function(e){var k=e.key.toLowerCase();keys[k]=true;if(k==='shift')G.nitroOn=true;if(overlayOpen&&k.indexOf('arrow')===0)e.preventDefault();if(k==='p'&&overlayOpen){if(G.state==='running')pauseGame();else if(G.state==='paused')resumeGame();}updKeys();});window.addEventListener('keyup',function(e){keys[e.key.toLowerCase()]=false;if(e.key.toLowerCase()==='shift')G.nitroOn=false;updKeys();});window.addEventListener('resize',function(){if(overlayOpen)sizeCanvas();});document.addEventListener('visibilitychange',function(){if(document.hidden&&overlayOpen&&G.state==='running')pauseGame();});})();
+          document.addEventListener('click',function(e){var t=e.target.closest('[data-act]');if(t){var act=t.getAttribute('data-act'),id=t.getAttribute('data-id'),g=id?byId(id):null;if(S.sound)AudioFX.click();if(act==='fav')toggleFav(id);else if(act==='dl')doDownload(g);else if(act==='play')doPlay(g);else if(act==='info')openSheet(g);else if(act==='close-sheet')closeSheet();else if(act==='nav')switchView(t.getAttribute('data-view'));else if(act==='chip'){S.chip=t.getAttribute('data-chip');renderChips();renderCatalog();}else if(act==='sound')toggleSound();else if(act==='open-game')openGame();else if(act==='diff'){G.diff=t.getAttribute('data-diff');renderDiff();}else if(act==='vibro'){S.vibro=!S.vibro;store.set('vibro',S.vibro);renderDiff();}else if(act==='start-game')startRun();else if(act==='pause')pauseGame();else if(act==='resume')resumeGame();else if(act==='restart')startRun();else if(act==='exit-game')closeGame();else if(act==='link')openExternal(t.getAttribute('data-url'));else if(act==='tl'){S.q='';S.chip='all';el('searchInp').value='';renderChips();renderCatalog();var card=el('card-'+id);if(card){card.scrollIntoView({behavior:'smooth',block:'center'});card.classList.add('flash');setTimeout(function(){card.classList.remove('flash');},1600);}}return;}var card=e.target.closest('.card');if(card)openSheet(byId(card.getAttribute('data-id')));});
+          var searchTimer=0;el('searchInp').addEventListener('input',function(){var v=this.value;clearTimeout(searchTimer);searchTimer=setTimeout(function(){S.q=v;renderCatalog();},120);});el('sortSel').addEventListener('change',function(){S.sort=this.value;renderCatalog();});
+          document.addEventListener('pointerdown',function firstTouch(){AudioFX.init();AudioFX.resume();document.removeEventListener('pointerdown',firstTouch);});
+          document.addEventListener('deviceready',function(){refreshInstalled();},false);
+          document.addEventListener('resume',function(){refreshInstalled();},false);
+          el('gamePoster').innerHTML=coverSVG(FOXPOSTER);
+          el('soundBtn').classList.toggle('muted',!S.sound);
+          renderTimeline();renderCatalog();renderFavs();renderRuns();renderBest();updateBadges();observeReveals(document);
+          </script>
+          </body>
+          </html>
+          FOX_HTML
+
+      - name: Generate icon PNG
+        run: |
+          npm install sharp
+          node -e "require('sharp')('icon.svg').resize(512,512).png().toFile('build/icon.png').then(()=>console.log('icon ok')).catch(e=>{console.log('icon skip',e.message)})"
+          if [ ! -f build/icon.png ]; then sed -i '/<icon/d' build/config.xml; fi
+
+      - name: Add Android platform and plugins
+        run: |
+          cd build
+          cordova platform add android@13.0.0
+          cordova plugin add cordova-plugin-whitelist
+          cordova plugin add "$GITHUB_WORKSPACE/foxplugin"
+
+      - name: Generate signing key
+        run: keytool -genkeypair -v -keystore fox.keystore -alias fox -keyalg RSA -keysize 2048 -validity 10000 -storepass fox123456 -keypass fox123456 -dname "CN=FoxAI, O=FoxAI, C=RU"
+
+      - name: Build release APK
+        run: |
+          cd build
+          cordova build android --release -- --keystore="$GITHUB_WORKSPACE/fox.keystore" --storePassword=fox123456 --alias=fox --password=fox123456 --packageType=apk
+
+      - name: Rename APK
+        run: |
+          mkdir -p out
+          cp build/platforms/android/app/build/outputs/apk/release/app-release.apk "out/GTA PORTS LAUNCHER.apk"
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: GTA-PORTS-LAUNCHER
+          path: out/GTA PORTS LAUNCHER.apk
+          if-no-files-found: error

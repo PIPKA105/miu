@@ -1,4 +1,4 @@
-name: FOX GTA PORTS APK v3
+name: FOX GTA PORTS APK v4
 
 on:
   workflow_dispatch:
@@ -10,11 +10,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
-      - run: echo "=== FOX WORKFLOW v3 ACTIVE ==="
+      - run: echo "=== FOX WORKFLOW v4 ACTIVE ==="
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
-        with: { node-version: 20 }
-      - uses: actions/setup-java@v4
+        with: { node-version: 22 }
+      - uses: actions/setup-java@v5
         with: { distribution: temurin, java-version: 17 }
 
       - name: Install Cordova
@@ -29,9 +29,23 @@ jobs:
 
       - name: Write config and native plugin
         run: |
+          cat > foxplugin/package.json <<'FOX_PKG'
+          {
+            "name": "cordova-plugin-foxlaunch",
+            "version": "1.0.0",
+            "description": "Launch installed apps and open Play Store.",
+            "cordova": {
+              "id": "cordova-plugin-foxlaunch",
+              "platforms": ["android"]
+            },
+            "keywords": ["ecosystem:cordova", "cordova-android"],
+            "author": "FoxAI",
+            "license": "MIT"
+          }
+          FOX_PKG
           cat > build/config.xml <<'FOX_CFG'
           <?xml version='1.0' encoding='utf-8'?>
-          <widget id="com.foxai.gtaports" version="3.0.0" xmlns="http://www.w3.org/ns/widgets" xmlns:cdv="http://cordova.apache.org/ns/1.0">
+          <widget id="com.foxai.gtaports" version="4.0.0" xmlns="http://www.w3.org/ns/widgets" xmlns:cdv="http://cordova.apache.org/ns/1.0">
               <name>GTA PORTS LAUNCHER</name>
               <description>Fan edition launcher for the whole GTA series + built-in joystick game.</description>
               <author href="https://github.com" email="fox@foxai.app">FoxAI</author>
@@ -365,7 +379,7 @@ jobs:
           <div class="anti-card reveal"><h3>⚠️ «GTA V / VI на телефон»</h3><p>Нативных портов IV и V нет. Любой «GTA5.apk» — фейк или вирус. Реально: облако Xbox или Winlator со своей PC-копией.</p><span class="anti-chip">НЕ СТАВИТЬ</span></div>
           <h2 class="sec-title reveal">КАК ЭТО РАБОТАЕТ</h2>
           <div class="steps reveal"><div class="step"><i>1</i><b>Выбери GTA</b><p>Карточка покажет лёгкий путь</p></div><div class="step"><i>2</i><b>Поставь движок</b><p>Эмулятор бесплатно</p></div><div class="step"><i>3</i><b>Своя копия</b><p>Дамп диска / UMD</p></div><div class="step"><i>4</i><b>▶ Играть</b><p>Лаунчер откроет эмулятор</p></div></div>
-          <footer>Сделано FoxAI 🦊 для Степы • v3</footer>
+          <footer>Сделано FoxAI 🦊 для Степы • v4</footer>
           </section>
           <section id="view-game" class="view">
           <h2 class="sec-title" style="margin-top:6px">🎮 ВСТРОЕННАЯ ИГРА</h2>
